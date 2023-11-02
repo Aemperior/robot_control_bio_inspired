@@ -121,8 +121,10 @@ void CurrentLoop()
     }    
     if (duty_cycle1 < 0) { // backwards
         motorShield.motorAWrite(absDuty1, 1);
+        motorShield.motorDWrite(absDuty1, 1);
     } else { // forwards
         motorShield.motorAWrite(absDuty1, 0);
+        motorShield.motorDWrite(absDuty1, 0);
     }             
     prev_current_des1 = current_des1; 
     
@@ -141,8 +143,10 @@ void CurrentLoop()
     }    
     if (duty_cycle2 < 0) { // backwards
         motorShield.motorBWrite(absDuty2, 1);
+        motorShield.motorCWrite(absDuty2, 1);
     } else { // forwards
         motorShield.motorBWrite(absDuty2, 0);
+        motorShield.motorCWrite(absDuty2, 0);
     }             
     prev_current_des2 = current_des2; 
     
@@ -203,7 +207,9 @@ int main (void)
             encoderD.reset();
 
             motorShield.motorAWrite(0, 0); //turn motor A off
+            motorShield.motorDWrite(0, 0);
             motorShield.motorBWrite(0, 0); //turn motor B off
+            motorShield.motorCWrite(0, 0);
                          
             // Run experiment
             while( t.read() < start_period + traj_period + end_period) { 
@@ -220,17 +226,17 @@ int main (void)
                 const float dth1= velocity1;
                 const float dth2= velocity2;
  
-                // Calculate the Jacobian
-                float Jx_th1 = 0;
-                float Jx_th2 = 0;
-                float Jy_th1 = 0;
-                float Jy_th2 = 0;
+                // Calculate the Jacobian   
+                float Jx_th1 = l_AC*cos(th1 + th2) + l_DE*cos(th1) + l_OB*cos(th1); //assumed to be dx/dth1
+                float Jx_th2 = l_AC*cos(th1 + th2); //assumed to be dx/dth2
+                float Jy_th1 = l_AC*sin(th1 + th2) + l_DE*sin(th1) + l_OB*sin(th1); //assumed to be dy/dth1
+                float Jy_th2 = l_AC*sin(th1 + th2); //assumed to be dy/dth2
                                 
                 // Calculate the forward kinematics (position and velocity)
-                float xFoot = 0;
-                float yFoot = 0;
-                float dxFoot = 0;
-                float dyFoot = 0;       
+                float xFoot = l_AC*sin(th1+th2) + l_DE*sin(th1) + l_OB*sin(th1);
+                float yFoot = -l_AC*cos(th1+th2) - l_DE*cos(th1) - l_OB*cos(th1);
+                float dxFoot = dth1*(l_AC*cos(th1 + th2) + l_DE*cos(th1) + l_OB*cos(th1)) + dth2*l_AC*cos(th1 + th2);
+                float dyFoot = dth1*(l_AC*sin(th1 + th2) + l_DE*sin(th1) + l_OB*sin(th1)) + dth2*l_AC*sin(th1 + th2);        
 
                 // Set gains based on buffer and traj times, then calculate desired x,y from Bezier trajectory at current time if necessary
                 float teff  = 0;
@@ -285,19 +291,19 @@ int main (void)
                 float dth2_des = (1.0f/dd) * ( -Jy_th1*vDesFoot[0] + Jx_th1*vDesFoot[1] );
         
                 // Calculate error variables
-                float e_x = 0;
-                float e_y = 0;
-                float de_x = 0;
-                float de_y = 0;
+                float e_x = rDesFoot[0] - xFoot;
+                float e_y = rDesFoot[1] - yFoot;
+                float de_x = vDesFoot[0] - dxFoot;
+                float de_y = vDesFoot[1] - dyFoot;
         
                 // Calculate virtual force on foot
-                float fx = 0;
-                float fy = 0;
+                float fx = K_xx*e_x + K_xy*e_y + D_xx*de_x + D_xy*de_y;
+                float fy = K_xy*e_x + K_yy*e_y + D_xy*de_x + D_yy*de_y;
                 
                 // Calculate mass matrix elements
-                float M11 = 0; 
-                float M12 = 0; 
-                float M22 = 0;
+                float M11 = I1 + I2 + I3 + I4 + Ir + Ir*pow(N,2) + pow(l_AC,2)*m4 + pow(l_A_m3,2)*m3 + pow(l_B_m2,2)*m2 + pow(l_C_m4,2)*m4 + pow(l_OA,2)*m3 + pow(l_OB,2)*m2 + pow(l_OA,2)*m4 + pow(l_O_m1,2)*m1 + 2*l_C_m4*l_OA*m4 + 2*l_AC*l_C_m4*m4*cos(th2) + 2*l_AC*l_OA*m4*cos(th2) + 2*l_A_m3*l_OA*m3*cos(th2) + 2*l_B_m2*l_OB*m2*cos(th2); 
+                float M12 = I2 + I3 + pow(l_AC,2)*m4 + pow(l_A_m3,2)*m3 + pow(l_B_m2,2)*m2 + Ir*N + l_AC*l_C_m4*m4*cos(th2) + l_AC*l_OA*m4*cos(th2) + l_A_m3*l_OA*m3*cos(th2) + l_B_m2*l_OB*m2*cos(th2); 
+                float M22 = Ir*pow(N,2) + m4*pow(l_AC,2) + m3*pow(l_A_m3,2) + m2*pow(l_B_m2,2) + I2 + I3;
                 
                 
                 
@@ -314,24 +320,35 @@ int main (void)
                 // Once you have copied the elements of the mass matrix, uncomment the following section
                 
                 // Calculate Lambda matrix
-//                JacobianT = MatrixMath::Transpose(Jacobian);
-//                InverseMassMatrix = MatrixMath::Inv(MassMatrix);
-//                temp_product = Jacobian*InverseMassMatrix*JacobianT;
-//                Lambda = MatrixMath::Inv(temp_product); 
+               JacobianT = MatrixMath::Transpose(Jacobian);
+               InverseMassMatrix = MatrixMath::Inv(MassMatrix);
+               temp_product = Jacobian*InverseMassMatrix*JacobianT;
+               Lambda = MatrixMath::Inv(temp_product); 
                 
                 // Pull elements of Lambda matrix
-//                float L11 = Lambda.getNumber(1,1);
-//                float L12 = Lambda.getNumber(1,2);
-//                float L21 = Lambda.getNumber(2,1);
-//                float L22 = Lambda.getNumber(2,2);               
+               float L11 = Lambda.getNumber(1,1);
+               float L12 = Lambda.getNumber(1,2);
+               float L21 = Lambda.getNumber(2,1);
+               float L22 = Lambda.getNumber(2,2);               
                                 
                                 
                                 
-                // Set desired currents             
-                current_des1 = 0;          
-                current_des2 = 0;   
+                // Set desired currents     
+                // Trajectory following torque        
+                // float tau_1 = Jx_th1*fx + Jy_th1*fy; 
+                // float tau_2 = Jx_th2*fx + Jy_th2*fy; 
 
+                // Lab 5 torque
+                Matrix tau(2,1); 
 
+                Matrix gain_times_error(2,1); 
+                gain_times_error << K_xx*e_x + K_xy*e_y + D_xx*de_x + D_xy*de_y
+                                     << K_yy*e_y + K_xy*e_x + D_yy*de_y + D_xy*de_x; 
+
+                tau = JacobianT*Lambda*gain_times_error; 
+
+                current_des1 = tau.getNumber(1,1)/k_t; 
+                current_des2 = tau.getNumber(2,1)/k_t;  
 
                 // Form output to send to MATLAB     
                 float output_data[NUM_OUTPUTS];
@@ -369,7 +386,9 @@ int main (void)
             server.setExperimentComplete();
             currentLoop.detach();
             motorShield.motorAWrite(0, 0); //turn motor A off
+            motorShield.motorDWrite(0, 0);
             motorShield.motorBWrite(0, 0); //turn motor B off
+            motorShield.motorCWrite(0, 0);
         
         } // end if
         
