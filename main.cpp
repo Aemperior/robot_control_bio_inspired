@@ -106,8 +106,10 @@ void CurrentLoop()
     //use the motor shield as follows:
     //motorShield.motorAWrite(DUTY CYCLE, DIRECTION), DIRECTION = 0 is forward, DIRECTION =1 is backwards.
         
-    current1 = -(((float(motorShield.readCurrentA())/65536.0f)*30.0f)-15.0f);           // measure current
-    velocity1 = encoderA.getVelocity() * PULSE_TO_RAD;                                  // measure velocity        
+    // current1 = -(((float(motorShield.readCurrentA())/65536.0f)*30.0f)-15.0f);           // measure current
+    // velocity1 = encoderA.getVelocity() * PULSE_TO_RAD;                                  // measure velocity   
+    current1 = -(((float(motorShield.readCurrentD())/65536.0f)*30.0f)-15.0f);           // measure current
+    velocity1 = encoderD.getVelocity() * PULSE_TO_RAD;                                  // measure velocity        
     float err_c1 = current_des1 - current1;                                             // current errror
     current_int1 += err_c1;                                                             // integrate error
     current_int1 = fmaxf( fminf(current_int1, current_int_max), -current_int_max);      // anti-windup
@@ -128,8 +130,10 @@ void CurrentLoop()
     }             
     prev_current_des1 = current_des1; 
     
-    current2     = -(((float(motorShield.readCurrentB())/65536.0f)*30.0f)-15.0f);       // measure current
-    velocity2 = encoderB.getVelocity() * PULSE_TO_RAD;                                  // measure velocity  
+    // current2     = -(((float(motorShield.readCurrentB())/65536.0f)*30.0f)-15.0f);       // measure current
+    // velocity2 = encoderB.getVelocity() * PULSE_TO_RAD;                                  // measure velocity 
+    current2     = -(((float(motorShield.readCurrentC())/65536.0f)*30.0f)-15.0f);       // measure current
+    velocity2 = encoderC.getVelocity() * PULSE_TO_RAD;                                  // measure velocity  
     float err_c2 = current_des2 - current2;                                             // current error
     current_int2 += err_c2;                                                             // integrate error
     current_int2 = fmaxf( fminf(current_int2, current_int_max), -current_int_max);      // anti-windup   
@@ -215,11 +219,15 @@ int main (void)
             while( t.read() < start_period + traj_period + end_period) { 
                  
                 // Read encoders to get motor states
-                angle1 = encoderA.getPulses() *PULSE_TO_RAD + angle1_init;       
-                velocity1 = encoderA.getVelocity() * PULSE_TO_RAD;
+                // angle1 = encoderA.getPulses() *PULSE_TO_RAD + angle1_init;   
+                // velocity1 = encoderA.getVelocity() * PULSE_TO_RAD;    
+                angle1 = encoderD.getPulses() *PULSE_TO_RAD + angle1_init;    
+                velocity1 = encoderD.getVelocity() * PULSE_TO_RAD;
                  
-                angle2 = encoderB.getPulses() * PULSE_TO_RAD + angle2_init;       
-                velocity2 = encoderB.getVelocity() * PULSE_TO_RAD;           
+                // angle2 = encoderB.getPulses() * PULSE_TO_RAD + angle2_init;       
+                // velocity2 = encoderB.getVelocity() * PULSE_TO_RAD;         
+                angle2 = encoderC.getPulses() * PULSE_TO_RAD + angle2_init;       
+                velocity2 = encoderC.getVelocity() * PULSE_TO_RAD;   
                 
                 const float th1 = angle1;
                 const float th2 = angle2;
