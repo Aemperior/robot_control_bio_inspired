@@ -8,6 +8,7 @@
 #include "HardwareSetup.h"
 #include "Matrix.h"
 #include "MatrixMath.h"
+#include "kinematics.h"
 
 #define BEZIER_ORDER_FOOT    7
 #define NUM_INPUTS (12 + 2*(BEZIER_ORDER_FOOT+1))
@@ -28,12 +29,9 @@ QEI encoderD(PD_12, PD_13, NC, 1200, QEI::X4_ENCODING);// MOTOR D ENCODER (no in
 MotorShield motorShield(24000); //initialize the motor shield with a period of 12000 ticks or ~20kHZ
 Ticker currentLoop;
 
-Matrix MassMatrix(2,2);
 Matrix Jacobian(2,2);
 Matrix JacobianT(2,2);
-Matrix InverseMassMatrix(2,2);
 Matrix temp_product(2,2);
-Matrix Lambda(2,2);
 
 // Variables for q1
 float current1;
@@ -55,25 +53,28 @@ float velocity2;
 float duty_cycle2;
 float angle2_init;
 
-// Fixed kinematic parameters
-const float l_OA=.011; 
-const float l_OB=.042; 
-const float l_AC=.096; 
-const float l_DE=.091;
-const float m1 =.0393 + .2;
-const float m2 =.0368; 
-const float m3 = .00783;
-const float m4 = .0155;
-const float I1 = 0.0000251;  //25.1 * 10^-6;
-const float I2 = 0.0000535;  //53.5 * 10^-6;
-const float I3 = 0.00000925; //9.25 * 10^-6;
-const float I4 = 0.0000222;  //22.176 * 10^-6;
-const float l_O_m1=0.032;
-const float l_B_m2=0.0344; 
-const float l_A_m3=0.0622;
-const float l_C_m4=0.0610;
-const float N = 18.75;
-const float Ir = 0.0035/pow(N,2);
+#define N_param 18.75
+const float Ir_param = 0.0035/pow(N_param,2);
+const kinematic_params params = {
+    .l_OA=.011, 
+    .l_OB=.042, 
+    .l_AC=.096, 
+    .l_DE=.091,
+    .m1 =.0393 + .2,
+    .m2 =.0368, 
+    .m3 = .00783,
+    .m4 = .0155,
+    .I1 = 0.0000251,  //25.1 * 10^-6,
+    .I2 = 0.0000535,  //53.5 * 10^-6,
+    .I3 = 0.00000925, //9.25 * 10^-6,
+    .I4 = 0.0000222,  //22.176 * 10^-6,
+    .l_O_m1=0.032,
+    .l_B_m2=0.0344, 
+    .l_A_m3=0.0622,
+    .l_C_m4=0.0610,
+    .N = N_param,
+    .Ir = Ir_param,
+};
 
 // Timing parameters
 float current_control_period_us = 200.0f;     // 5kHz current control loop
@@ -117,6 +118,7 @@ void CurrentLoop()
     duty_cycle1 = (ff1 + current_Kp*err_c1 + current_Ki*current_int1)/supply_voltage;   // PI current controller
     
     float absDuty1 = abs(duty_cycle1);
+    
     if (absDuty1 > duty_max) {
         duty_cycle1 *= duty_max / absDuty1;
         absDuty1 = duty_max;
@@ -233,18 +235,27 @@ int main (void)
                 const float th2 = angle2;
                 const float dth1= velocity1;
                 const float dth2= velocity2;
+
+                joint_state joint_state_foot1 = {
+                    .th1 = th1,
+                    .th2 = th2,
+                    .dth1 = dth1,
+                    .dth2 = dth2,
+                };
  
-                // Calculate the Jacobian   
-                float Jx_th1 = l_AC*cos(th1 + th2) + l_DE*cos(th1) + l_OB*cos(th1); //assumed to be dx/dth1
-                float Jx_th2 = l_AC*cos(th1 + th2); //assumed to be dx/dth2
-                float Jy_th1 = l_AC*sin(th1 + th2) + l_DE*sin(th1) + l_OB*sin(th1); //assumed to be dy/dth1
-                float Jy_th2 = l_AC*sin(th1 + th2); //assumed to be dy/dth2
+                // Calculate the Jacobian  
+                foot_jacobian J = calc_foot_jacobi(th1, th2, params); 
+                float Jx_th1 = J.Jx_th1; 
+                float Jx_th2 = J.Jx_th2; 
+                float Jy_th1 = J.Jy_th1;
+                float Jy_th2 = J.Jy_th2; 
                                 
                 // Calculate the forward kinematics (position and velocity)
-                float xFoot = l_AC*sin(th1+th2) + l_DE*sin(th1) + l_OB*sin(th1);
-                float yFoot = -l_AC*cos(th1+th2) - l_DE*cos(th1) - l_OB*cos(th1);
-                float dxFoot = dth1*(l_AC*cos(th1 + th2) + l_DE*cos(th1) + l_OB*cos(th1)) + dth2*l_AC*cos(th1 + th2);
-                float dyFoot = dth1*(l_AC*sin(th1 + th2) + l_DE*sin(th1) + l_OB*sin(th1)) + dth2*l_AC*sin(th1 + th2);        
+                foot_state foot_state_foot1= calc_forward_kinematics(joint_state_foot1, params); 
+                float xFoot =  foot_state_foot1.xFoot; 
+                float yFoot =  foot_state_foot1.yFoot; 
+                float dxFoot = foot_state_foot1.dxFoot; 
+                float dyFoot = foot_state_foot1.dxFoot; 
 
                 // Set gains based on buffer and traj times, then calculate desired x,y from Bezier trajectory at current time if necessary
                 float teff  = 0;
@@ -286,77 +297,22 @@ int main (void)
                 vDesFoot[0]*=vMult;
                 vDesFoot[1]*=vMult;
                 
-                // Calculate the inverse kinematics (joint positions and velocities) for desired joint angles              
-                float xFoot_inv = -rDesFoot[0];
-                float yFoot_inv = rDesFoot[1];                
-                float l_OE = sqrt( (pow(xFoot_inv,2) + pow(yFoot_inv,2)) );
-                float alpha = abs(acos( (pow(l_OE,2) - pow(l_AC,2) - pow((l_OB+l_DE),2))/(-2.0f*l_AC*(l_OB+l_DE)) ));
-                float th2_des = -(3.14159f - alpha); 
-                float th1_des = -((3.14159f/2.0f) + atan2(yFoot_inv,xFoot_inv) - abs(asin( (l_AC/l_OE)*sin(alpha) )));
-                
-                float dd = (Jx_th1*Jy_th2 - Jx_th2*Jy_th1);
-                float dth1_des = (1.0f/dd) * (  Jy_th2*vDesFoot[0] - Jx_th2*vDesFoot[1] );
-                float dth2_des = (1.0f/dd) * ( -Jy_th1*vDesFoot[0] + Jx_th1*vDesFoot[1] );
-        
-                // Calculate error variables
-                float e_x = rDesFoot[0] - xFoot;
-                float e_y = rDesFoot[1] - yFoot;
-                float de_x = vDesFoot[0] - dxFoot;
-                float de_y = vDesFoot[1] - dyFoot;
-        
-                // Calculate virtual force on foot
-                float fx = K_xx*e_x + K_xy*e_y + D_xx*de_x + D_xy*de_y;
-                float fy = K_xy*e_x + K_yy*e_y + D_xy*de_x + D_yy*de_y;
-                
-                // Calculate mass matrix elements
-                float M11 = I1 + I2 + I3 + I4 + Ir + Ir*pow(N,2) + pow(l_AC,2)*m4 + pow(l_A_m3,2)*m3 + pow(l_B_m2,2)*m2 + pow(l_C_m4,2)*m4 + pow(l_OA,2)*m3 + pow(l_OB,2)*m2 + pow(l_OA,2)*m4 + pow(l_O_m1,2)*m1 + 2*l_C_m4*l_OA*m4 + 2*l_AC*l_C_m4*m4*cos(th2) + 2*l_AC*l_OA*m4*cos(th2) + 2*l_A_m3*l_OA*m3*cos(th2) + 2*l_B_m2*l_OB*m2*cos(th2); 
-                float M12 = I2 + I3 + pow(l_AC,2)*m4 + pow(l_A_m3,2)*m3 + pow(l_B_m2,2)*m2 + Ir*N + l_AC*l_C_m4*m4*cos(th2) + l_AC*l_OA*m4*cos(th2) + l_A_m3*l_OA*m3*cos(th2) + l_B_m2*l_OB*m2*cos(th2); 
-                float M22 = Ir*pow(N,2) + m4*pow(l_AC,2) + m3*pow(l_A_m3,2) + m2*pow(l_B_m2,2) + I2 + I3;
-                
-                
-                
-                // Populate mass matrix
-                MassMatrix.Clear();
-                MassMatrix << M11 << M12
-                           << M12 << M22;
-                
-                // Populate Jacobian matrix
-                Jacobian.Clear();
-                Jacobian << Jx_th1 << Jx_th2
-                         << Jy_th1 << Jy_th2;
-                
-                // Once you have copied the elements of the mass matrix, uncomment the following section
-                
-                // Calculate Lambda matrix
-               JacobianT = MatrixMath::Transpose(Jacobian);
-               InverseMassMatrix = MatrixMath::Inv(MassMatrix);
-               temp_product = Jacobian*InverseMassMatrix*JacobianT;
-               Lambda = MatrixMath::Inv(temp_product); 
-                
-                // Pull elements of Lambda matrix
-               float L11 = Lambda.getNumber(1,1);
-               float L12 = Lambda.getNumber(1,2);
-               float L21 = Lambda.getNumber(2,1);
-               float L22 = Lambda.getNumber(2,2);               
-                                
-                                
-                                
-                // Set desired currents     
-                // Trajectory following torque        
-                // float tau_1 = Jx_th1*fx + Jy_th1*fy; 
-                // float tau_2 = Jx_th2*fx + Jy_th2*fy; 
+                // Calculate the inverse kinematics (joint positions and velocities) for desired joint angles 
+                foot_state desired_foot_state = {
+                    .xFoot = rDesFoot[0],
+                    .yFoot = rDesFoot[1],
+                    .dxFoot = vDesFoot[0],
+                    .dyFoot = vDesFoot[1],
+                };
 
-                // Lab 5 torque
-                Matrix tau(2,1); 
+                joint_state desired_joint_state = calc_desired_joints(desired_foot_state, J, params); 
+                float th1_des = desired_joint_state.th1;
+                float th2_des = desired_joint_state.th2;
+                float dth1_des = desired_joint_state.dth1;
+                float dth2_des = desired_joint_state.dth2;
 
-                Matrix gain_times_error(2,1); 
-                gain_times_error << K_xx*e_x + K_xy*e_y + D_xx*de_x + D_xy*de_y
-                                     << K_yy*e_y + K_xy*e_x + D_yy*de_y + D_xy*de_x; 
-
-                tau = JacobianT*Lambda*gain_times_error; 
-
-                current_des1 = tau.getNumber(1,1)/k_t; 
-                current_des2 = tau.getNumber(2,1)/k_t;  
+                current_des1 = (K_xx*(th1_des - th1) + D_xx*(dth1_des - dth1))/k_t; 
+                current_des2 = (K_yy*(th2_des - th2) + D_yy*(dth2_des - dth2))/k_t;  
 
                 // Form output to send to MATLAB     
                 float output_data[NUM_OUTPUTS];
