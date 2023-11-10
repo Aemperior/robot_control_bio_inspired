@@ -29,8 +29,6 @@ enum motor{
 struct leg_config{
     enum motor motor1;
     enum motor motor2;
-    float initial_angle1;
-    float initial_angle2;
 };
 
 class CurrentLoopController {
@@ -78,10 +76,6 @@ public:
     float nu = 0.0005;             // motor viscous friction  
 
     float readCurrent(motor m); 
-
-    float readVelocity(motor m);
-    
-    float readAngle(motor m, float initialAngle); 
     
     void writeMotor(motor m, float dutyCycle, int direction);
 

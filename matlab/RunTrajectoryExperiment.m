@@ -1,5 +1,5 @@
 function output_data = RunTrajectoryExperiment( angleR1_init, angleR2_init, angleL1_init, angleL2_init, ...
-    pts_footR, pts_footL, traj_time, pre_buffer_time, post_buffer_time, gains, duty_max)
+    pts_footR, pts_footL, traj_time, pre_buffer_time, pre_buffer_timeR, pre_buffer_timeL, post_buffer_time, gains, duty_max)
     
     % Figure for plotting motor data
     figure(1);  clf;       
@@ -108,26 +108,35 @@ function output_data = RunTrajectoryExperiment( angleR1_init, angleR2_init, angl
 
         xR = -new_data(:,12);         % actual foot position (negative due to direction motors are mounted)
         yR = new_data(:,13);         % actual foot position
+        %speed missing 14
+        %speed missing 15
         xRdes = -new_data(:,16);      % desired foot position (negative due to direction motors are mounted)
         yRdes = new_data(:,17);      % desired foot position  
+        dxRdes = new_data(:,18);
+        dyRDes = new_data(:,19);
 
-        posL1 = new_data(:,18);       % position
-        velL1 = new_data(:,19);       % velocity
-        curL1 = new_data(:,20);       % current
-        dcurL1 = new_data(:,21);      % desired current
-        dutyL1 = new_data(:,22);      % command
+        posL1 = new_data(:,20);       % position
+        velL1 = new_data(:,21);       % velocity
+        curL1 = new_data(:,22);       % current
+        dcurL1 = new_data(:,23);      % desired current
+        dutyL1 = new_data(:,24);      % command
         
-        posL2 = new_data(:,23);       % position
-        velL2 = new_data(:,24);       % velocity
-        curL2 = new_data(:,25);       % current
-        dcurL2 = new_data(:,26);     % desired current
-        dutyL2 = new_data(:,27);     % command
+        posL2 = new_data(:,25);       % position
+        velL2 = new_data(:,26);       % velocity
+        curL2 = new_data(:,27);       % current
+        dcurL2 = new_data(:,28);     % desired current
+        dutyL2 = new_data(:,29);     % command
         
-        xL = -new_data(:,28);         % actual foot position (negative due to direction motors are mounted)
-        yL = new_data(:,29);         % actual foot position
-        xLdes = -new_data(:,30);      % desired foot position (negative due to direction motors are mounted)
-        yLdes = new_data(:,31);      % desired foot position         
-        
+        xL = -new_data(:,30);         % actual foot position (negative due to direction motors are mounted)
+        yL = new_data(:,31);         % actual foot position
+        % speed missing
+        % speed missing
+        xLdes = -new_data(:,34);      % desired foot position (negative due to direction motors are mounted)
+        yLdes = new_data(:,35);      % desired foot position         
+        dxLdes = new_data(:,36);
+        dyLdes = new_data(:,37);
+    
+
         N = length(pos1);
         
         % Update motor data plots
@@ -188,7 +197,9 @@ function output_data = RunTrajectoryExperiment( angleR1_init, angleR2_init, angl
     %params.timeout  = 2;            % end of experiment timeout
     
     % Parameters for tuning
-    start_period                = pre_buffer_time;    % In seconds 
+    start_period                 = pre_buffer_time; 
+    start_periodR                = pre_buffer_timeR;    % In seconds 
+    start_periodL                = pre_buffer_timeL;    % In seconds 
     end_period                  = post_buffer_time;   % In seconds
     
     K_xx                     = gains.K_xx; % Stiffness
@@ -200,7 +211,7 @@ function output_data = RunTrajectoryExperiment( angleR1_init, angleR2_init, angl
     D_xy                     = gains.D_xy; % Damping
     
     % Specify inputs
-    input = [start_period traj_time end_period];
+    input = [start_period start_periodR start_periodL traj_time end_period];
     input = [input angleR1_init angleR2_init angleL1_init angleL2_init];
     input = [input K_xx K_yy K_xy D_xx D_yy D_xy];
     input = [input duty_max];

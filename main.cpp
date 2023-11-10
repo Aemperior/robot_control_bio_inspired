@@ -40,12 +40,14 @@ const kinematic_params params = {
 // Timing parameters
 float current_control_period_us = 200.0f;     // 5kHz current control loop
 float impedance_control_period_us = 1000.0f;  // 1kHz impedance control loop
-float start_period, traj_period, end_period;     
+float start_period, start_periodR, start_periodL, traj_period, end_period;     
 
 struct leg_gain gains;
 
-float angle1_init;
-float angle2_init; 
+float angleR1_init;
+float angleR2_init; 
+float angleL1_init;
+float angleL2_init; 
 float duty_max; 
 
 int main (void)
@@ -58,7 +60,8 @@ int main (void)
     MotorShield motorShield(24000); //initialize the motor shield with a period of 12000 ticks or ~20kHZ
     
     // Object for 7th order Cartesian foot trajectory
-    BezierCurve rDesFoot_bez(2,BEZIER_ORDER_FOOT);
+    BezierCurve rDesFootR_bez(2,BEZIER_ORDER_FOOT);
+    BezierCurve rDesFootL_bez(2,BEZIER_ORDER_FOOT);
     
     // Link the terminal with our server and start it up
     server.attachTerminal(pc);
@@ -77,27 +80,23 @@ int main (void)
             input_array2struct(input_params, &input_struct); 
 
             start_period    = input_struct.start_period;
+            start_periodR   = input_struct.start_periodR;
+            start_periodL   = input_struct.start_periodL;
             traj_period     = input_struct.traj_period;    // Trajectory time/length
             end_period      = input_struct.end_period;    // Second buffer time, after trajectory
     
-            angle1_init     = input_struct.angleR1_init;    // Initial angle for q1 (rad)
-            angle2_init     = input_struct.angleR2_init;    // Initial angle for q2 (rad)
+            angleR1_init    = input_struct.angleR1_init;    // Initial angle for q1 (rad)
+            angleR2_init    = input_struct.angleR2_init;    // Initial angle for q2 (rad)
+
+            angleL1_init    = input_struct.angleL1_init;    // Initial angle for q1 (rad)
+            angleL2_init    = input_struct.angleL2_init;    // Initial angle for q2 (rad)
 
             gains           = input_struct.gains; 
             
             duty_max        = input_struct.duty_max;   // Maximum duty factor
 
-            rDesFoot_bez.setPoints(input_struct.foot_points);
-            
-            // Attach current loop interrupt
-            // CurrentLoopController current_controller1(
-            //     duty_max,
-            //     [&motorShield](float dutyCycle, int direction) { motorShield.motorDWrite(dutyCycle, direction); },
-            //     [&motorShield]() { return motorShield.readCurrentD(); },
-            //     [&encoderD]() { return encoderD.getVelocity(); },
-            //     [&motorShield](float dutyCycle, int direction) { motorShield.motorCWrite(dutyCycle, direction); },
-            //     [&motorShield]() { return motorShield.readCurrentC(); },
-            //     [&encoderC]() { return encoderC.getVelocity(); });
+            rDesFootR_bez.setPoints(input_struct.foot_pointsR);
+            rDesFootL_bez.setPoints(input_struct.foot_pointsL);
             
             CurrentLoopController current_controllerR(
                 duty_max,
@@ -138,15 +137,15 @@ int main (void)
                  
                 // Read encoders to get motor states   
                 joint_state joints_R_state = {
-                    .th1 = encoderD.getPulses() *PULSE_TO_RAD + angle1_init,
-                    .th2 = encoderC.getPulses() * PULSE_TO_RAD + angle2_init,
+                    .th1 = encoderD.getPulses() *PULSE_TO_RAD + angleR1_init,
+                    .th2 = encoderC.getPulses() * PULSE_TO_RAD + angleR2_init,
                     .dth1 = encoderD.getVelocity() * PULSE_TO_RAD,
                     .dth2 = encoderC.getVelocity() * PULSE_TO_RAD,
                 };
 
                 joint_state joints_L_state = {
-                    .th1 = encoderA.getPulses() *PULSE_TO_RAD + angle1_init,
-                    .th2 = encoderB.getPulses() * PULSE_TO_RAD + angle2_init,
+                    .th1 = encoderA.getPulses() *PULSE_TO_RAD + angleL1_init,
+                    .th2 = encoderB.getPulses() * PULSE_TO_RAD + angleL2_init,
                     .dth1 = encoderA.getVelocity() * PULSE_TO_RAD,
                     .dth2 = encoderB.getVelocity() * PULSE_TO_RAD,
                 };
@@ -179,29 +178,38 @@ int main (void)
                 }
                 
                 // Get desired foot positions and velocities
-                float rDesFoot[2] , vDesFoot[2];
-                rDesFoot_bez.evaluate(teff/traj_period,rDesFoot);
-                rDesFoot_bez.evaluateDerivative(teff/traj_period,vDesFoot);
-                vDesFoot[0]/=traj_period;
-                vDesFoot[1]/=traj_period;
-                vDesFoot[0]*=vMult;
-                vDesFoot[1]*=vMult;
+                float rDesFootR[2] , vDesFootR[2];
+                rDesFootR_bez.evaluate(teff/traj_period,rDesFootR);
+                rDesFootR_bez.evaluateDerivative(teff/traj_period,vDesFootR);
+                vDesFootR[0]/=traj_period;
+                vDesFootR[1]/=traj_period;
+                vDesFootR[0]*=vMult;
+                vDesFootR[1]*=vMult;
+
+                float rDesFootL[2] , vDesFootL[2];
+                rDesFootL_bez.evaluate(teff/traj_period,rDesFootL);
+                rDesFootL_bez.evaluateDerivative(teff/traj_period,vDesFootL);
+                vDesFootL[0]/=traj_period;
+                vDesFootL[1]/=traj_period;
+                vDesFootL[0]*=vMult;
+                vDesFootL[1]*=vMult;
                 
                 // Calculate the inverse kinematics (joint positions and velocities) for desired joint angles 
-                // struct foot_state desired_foot_stateR = {
-                //     .xFoot = rDesFoot[0],
-                //     .yFoot = rDesFoot[1],
-                //     .dxFoot = vDesFoot[0],
-                //     .dyFoot = vDesFoot[1],
-                // };
-                struct foot_state desired_foot_stateR = foot_R_state; 
-                // struct foot_state desired_foot_stateL = {
-                //     .xFoot = rDesFoot[0],
-                //     .yFoot = rDesFoot[1],
-                //     .dxFoot = vDesFoot[0],
-                //     .dyFoot = vDesFoot[1],
-                // };
-                struct foot_state desired_foot_stateL = foot_R_state; 
+
+                struct foot_state desired_foot_stateR = {
+                    .xFoot = rDesFootR[0],
+                    .yFoot = rDesFootR[1],
+                    .dxFoot = vDesFootR[0],
+                    .dyFoot = vDesFootR[1],
+                };
+                // struct foot_state desired_foot_stateR = foot_R_state; 
+                struct foot_state desired_foot_stateL = {
+                    .xFoot = rDesFootL[0],
+                    .yFoot = rDesFootL[1],
+                    .dxFoot = vDesFootL[0],
+                    .dyFoot = vDesFootL[1],
+                };
+                // struct foot_state desired_foot_stateL = foot_R_state; 
 
                 struct joint_state desired_joint_stateR = calc_desired_joints(desired_foot_stateR, J_R, params); 
                 struct joint_state desired_joint_stateL = calc_desired_joints(desired_foot_stateL, J_L, params); 
@@ -218,6 +226,7 @@ int main (void)
                 struct to_matlab output_struct; 
 
                 output_struct.t = t.read();
+
                 output_struct.footR = foot_R_state;
                 output_struct.jointsR = joints_R_state;
                 output_struct.des_footR = desired_foot_stateR;
@@ -226,6 +235,15 @@ int main (void)
                 output_struct.des_current_pairR = current_controllerR.desired_currents;
                 output_struct.dutycycleR1 = current_controllerR.duty_cycle1;
                 output_struct.dutycycleR2 = current_controllerR.duty_cycle2;
+
+                output_struct.footL = foot_L_state;
+                output_struct.jointsL = joints_L_state;
+                output_struct.des_footL = desired_foot_stateL;
+                output_struct.des_jointsL = desired_joint_stateL;    
+                output_struct.current_pairL = current_controllerL.currents;
+                output_struct.des_current_pairL = current_controllerL.desired_currents;
+                output_struct.dutycycleL1 = current_controllerL.duty_cycle1;
+                output_struct.dutycycleL2 = current_controllerL.duty_cycle2;
 
                 output_struct2array(output_struct, output_data);
                 

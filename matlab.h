@@ -4,9 +4,9 @@
 #include "controller.h"
 
 #define BEZIER_ORDER_FOOT    7
-#define NUM_INPUTS (12 + 2*(BEZIER_ORDER_FOOT+1))
-#define NUM_OUTPUTS 19
-#define N_FOOT_POINTS 2*(BEZIER_ORDER_FOOT+1)
+#define N_FOOT_POINTS_PER_FOOT 2*(BEZIER_ORDER_FOOT+1)
+#define NUM_INPUTS (16 + 2*N_FOOT_POINTS_PER_FOOT)
+#define NUM_OUTPUTS 37
 
 #define t_OUT_IDX 0
 
@@ -32,20 +32,51 @@
 #define vDesFootR_x_OUT_IDX 17
 #define vDesFootR_y_OUT_IDX 18
 
+#define angleL1_OUT_IDX 19
+#define velocityL1_OUT_IDX 20
+#define currentL1_OUT_IDX 21
+#define current_desL1_OUT_IDX 22
+#define duty_cycleL1_OUT_IDX 23
+
+#define angleL2_OUT_IDX 24
+#define velocityL2_OUT_IDX 25
+#define currentL2_OUT_IDX 26
+#define current_desL2_OUT_IDX 27
+#define duty_cycleL2_OUT_IDX 28
+
+#define xFootL_OUT_IDX 29
+#define yFootL_OUT_IDX 30
+#define dxFootL_OUT_IDX 31
+#define dyFootL_OUT_IDX 32
+
+#define rDesFootL_x_OUT_IDX 33
+#define rDesFootL_y_OUT_IDX 34
+#define vDesFootL_x_OUT_IDX 35
+#define vDesFootL_y_OUT_IDX 36
+
 
 #define start_period_IN_IDX 0
-#define traj_period_IN_IDX 1
-#define end_period_IN_IDX 2
-#define angleR1_init_IN_IDX 3
-#define angleR2_init_IN_IDX 4
-#define K_xx_IN_IDX 5
-#define K_yy_IN_IDX 6
-#define K_xy_IN_IDX 7
-#define D_xx_IN_IDX 8
-#define D_yy_IN_IDX 9
-#define D_xy_IN_IDX 10
-#define duty_max_IN_IDX 11
-#define bezier_points_begin_IN_IDX 12
+#define start_periodR_IN_IDX 1
+#define start_periodL_IN_IDX 2
+
+#define traj_period_IN_IDX 3
+#define end_period_IN_IDX 4
+#define angleR1_init_IN_IDX 5
+#define angleR2_init_IN_IDX 6
+#define angleL1_init_IN_IDX 7
+#define angleL2_init_IN_IDX 8
+
+#define K_xx_IN_IDX 9
+#define K_yy_IN_IDX 10
+#define K_xy_IN_IDX 11
+#define D_xx_IN_IDX 12
+#define D_yy_IN_IDX 13
+#define D_xy_IN_IDX 14
+#define duty_max_IN_IDX 15
+
+#define bezier_pointsR_begin_IN_IDX 16
+
+#define bezier_pointsL_begin_IN_IDX 16 + N_FOOT_POINTS_PER_FOOT
 
 struct to_matlab{
     float t; 
@@ -68,23 +99,29 @@ struct to_matlab{
 
     float dutycycleR1; 
     float dutycycleR2; 
-    float dutyCycleL1; 
-    float dutyCycleL2; 
+    float dutycycleL1; 
+    float dutycycleL2; 
 };
 
 struct from_matlab{
     float start_period;
+    float start_periodR; 
+    float start_periodL;
     float traj_period; 
     float end_period;
 
     float angleR1_init; 
     float angleR2_init; 
+
+    float angleL1_init;
+    float angleL2_init;
     
     struct leg_gain gains; 
 
     float duty_max; 
 
-    float foot_points[N_FOOT_POINTS]; 
+    float foot_pointsR[N_FOOT_POINTS_PER_FOOT]; 
+    float foot_pointsL[N_FOOT_POINTS_PER_FOOT];
 };
 
 void output_struct2array(struct to_matlab output_struct, float output_data[NUM_OUTPUTS]); 
