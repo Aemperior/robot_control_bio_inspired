@@ -1,6 +1,6 @@
 #pragma once
 
-typedef struct{
+struct kinematic_params{
     // Fixed kinematic parameters
     float l_OA;  
     float l_OB;  
@@ -20,38 +20,38 @@ typedef struct{
     float l_C_m4;
     float N;
     float Ir;
-} kinematic_params; 
+}; 
 
-typedef struct{
+struct foot_jacobian{
     float Jx_th1; 
     float Jx_th2; 
     float Jy_th1; 
     float Jy_th2; 
-} foot_jacobian;
+};
 
-typedef struct{
+struct foot_state{
 float xFoot; 
 float yFoot; 
 float dxFoot; 
 float dyFoot; 
-} foot_state;
+};
 
-typedef struct{
+struct joint_state{
 float th1; 
 float th2; 
 float dth1; 
 float dth2; 
-} joint_state;
+};
 
-typedef struct{
+struct angle_pair{
     float th1;
     float th2;
-} angle_pair; 
+}; 
 
-foot_jacobian calc_foot_jacobi(float th1, float th2, kinematic_params params); 
+struct foot_jacobian calc_foot_jacobi(float th1, float th2, struct kinematic_params params); 
 
-foot_state calc_forward_kinematics(joint_state joints, kinematic_params params); 
+struct foot_state calc_forward_kinematics(struct joint_state joints, struct kinematic_params params); 
 
-angle_pair calc_inverse_kinematics(float xFoot, float yFoot, kinematic_params params); 
+struct angle_pair calc_inverse_kinematics(float xFoot, float yFoot, struct kinematic_params params); 
 
-joint_state calc_desired_joints(foot_state foot_state_desired, foot_jacobian J, kinematic_params params); 
+struct joint_state calc_desired_joints(struct foot_state foot_state_desired, struct foot_jacobian J, struct kinematic_params params); 

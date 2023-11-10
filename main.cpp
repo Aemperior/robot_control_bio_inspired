@@ -245,10 +245,6 @@ int main (void)
  
                 // Calculate the Jacobian  
                 foot_jacobian J = calc_foot_jacobi(th1, th2, params); 
-                float Jx_th1 = J.Jx_th1; 
-                float Jx_th2 = J.Jx_th2; 
-                float Jy_th1 = J.Jy_th1;
-                float Jy_th2 = J.Jy_th2; 
                                 
                 // Calculate the forward kinematics (position and velocity)
                 foot_state foot_state_foot1= calc_forward_kinematics(joint_state_foot1, params); 
