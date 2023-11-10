@@ -11,6 +11,8 @@
 #include "Matrix.h"
 #include "MatrixMath.h"
 
+#define PULSE_TO_RAD (2.0f*3.14159f / 1200.0f)
+
 struct current_pair get_desired_current(struct joint_state state, struct leg_gain gains, struct joint_state desired_state, float k_t){
     
     float current_des1 = (gains.K_xx*(desired_state.th1 - state.th1) + gains.D_xx*(desired_state.dth1 - state.dth1))/k_t; 
@@ -54,8 +56,8 @@ void CurrentLoopController::callback()
         
     // current1 = -(((float(motorShield.readCurrentA())/65536.0f)*30.0f)-15.0f);           // measure current
     // velocity1 = encoderA.getVelocity() * PULSE_TO_RAD;                                  // measure velocity   
-    currents.current1 = -(((float(motorReadCurrent_1_Func)/65536.0f)*30.0f)-15.0f);           // measure current
-    joint_states.dth1 = motorReadVelocity_1_Func * PULSE_TO_RAD;                                  // measure velocity        
+    currents.current1 = -(((float(motorReadCurrent_1_Func())/65536.0f)*30.0f)-15.0f);           // measure current
+    joint_states.dth1 = motorReadVelocity_1_Func() * PULSE_TO_RAD;                                  // measure velocity        
     float err_c1 = desired_currents.current1 - currents.current1;                                             // current errror
     current_int1 += err_c1;                                                             // integrate error
     current_int1 = fmaxf( fminf(current_int1, current_int_max), -current_int_max);      // anti-windup
@@ -75,15 +77,15 @@ void CurrentLoopController::callback()
     }             
     
 
-    currents.current2 = -(((float(motorReadCurrent_1_Func)/65536.0f)*30.0f)-15.0f);       // measure current
-    joint_states.dth2 = motorReadVelocity_2_Func * PULSE_TO_RAD;                                  // measure velocity  
+    currents.current2 = -(((float(motorReadCurrent_1_Func())/65536.0f)*30.0f)-15.0f);       // measure current
+    joint_states.dth2 = motorReadVelocity_2_Func() * PULSE_TO_RAD;                                  // measure velocity  
     float err_c2 = desired_currents.current2 - currents.current2;                                             // current error
     current_int2 += err_c2;                                                             // integrate error
     current_int2 = fmaxf( fminf(current_int2, current_int_max), -current_int_max);      // anti-windup   
     float ff2 = R*desired_currents.current2 + k_t*joint_states.dth2;                                         // feedforward terms
     duty_cycle2 = (ff2 + current_Kp*err_c2 + current_Ki*current_int2)/supply_voltage;   // PI current controller
     
-    float absDuty2 = abs(duty_cycleR2);
+    float absDuty2 = abs(duty_cycle2);
     if (absDuty2 > duty_max) {
         duty_cycle2 *= duty_max / absDuty2;
         absDuty2 = duty_max;

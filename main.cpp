@@ -19,13 +19,6 @@ Serial pc(USBTX, USBRX);    // USB Serial Terminal
 ExperimentServer server;    // Object that lets us communicate with MATLAB
 Timer t;                    // Timer to measure elapsed time of experiment
 
-QEI encoderA(PE_9,PE_11, NC, 1200, QEI::X4_ENCODING);  // MOTOR A ENCODER (no index, 1200 counts/rev, Quadrature encoding)
-QEI encoderB(PA_5, PB_3, NC, 1200, QEI::X4_ENCODING);  // MOTOR B ENCODER (no index, 1200 counts/rev, Quadrature encoding)
-QEI encoderC(PC_6, PC_7, NC, 1200, QEI::X4_ENCODING);  // MOTOR C ENCODER (no index, 1200 counts/rev, Quadrature encoding)
-QEI encoderD(PD_12, PD_13, NC, 1200, QEI::X4_ENCODING);// MOTOR D ENCODER (no index, 1200 counts/rev, Quadrature encoding)
-
-MotorShield motorShield(24000); //initialize the motor shield with a period of 12000 ticks or ~20kHZ
-
 Ticker currentLoop1;
 Ticker currentLoop2;
 
@@ -59,8 +52,18 @@ float start_period, traj_period, end_period;
 
 struct leg_gain gains;
 
+float angle1_init;
+float angle2_init; 
+float duty_max; 
+
 int main (void)
 {
+    QEI encoderA(PE_9,PE_11, NC, 1200, QEI::X4_ENCODING);  // MOTOR A ENCODER (no index, 1200 counts/rev, Quadrature encoding)
+    QEI encoderB(PA_5, PB_3, NC, 1200, QEI::X4_ENCODING);  // MOTOR B ENCODER (no index, 1200 counts/rev, Quadrature encoding)
+    QEI encoderC(PC_6, PC_7, NC, 1200, QEI::X4_ENCODING);  // MOTOR C ENCODER (no index, 1200 counts/rev, Quadrature encoding)
+    QEI encoderD(PD_12, PD_13, NC, 1200, QEI::X4_ENCODING);// MOTOR D ENCODER (no index, 1200 counts/rev, Quadrature encoding)
+
+    MotorShield motorShield(24000); //initialize the motor shield with a period of 12000 ticks or ~20kHZ
     
     // Object for 7th order Cartesian foot trajectory
     BezierCurve rDesFoot_bez(2,BEZIER_ORDER_FOOT);
@@ -95,7 +98,7 @@ int main (void)
             rDesFoot_bez.setPoints(input_struct.foot_points);
             
             // Attach current loop interrupt
-            CurrentLoopController controller1(
+            CurrentLoopController current_controller1(
                 duty_max,
                 [&motorShield](float dutyCycle, int direction) { motorShield.motorDWrite(dutyCycle, direction); },
                 [&motorShield]() { return motorShield.readCurrentD(); },
@@ -104,7 +107,7 @@ int main (void)
                 [&motorShield]() { return motorShield.readCurrentC(); },
                 [&encoderC]() { return encoderC.getVelocity(); });
             
-            currentLoop1.attach_us(callback(&controller1, &CurrentLoopController::callback),current_control_period_us);
+            currentLoop1.attach_us(callback(&current_controller1, &CurrentLoopController::callback),current_control_period_us);
                         
             // Setup experiment
             t.reset();
@@ -125,13 +128,13 @@ int main (void)
                 // Read encoders to get motor states
                 // angle1 = encoderA.getPulses() *PULSE_TO_RAD + angle1_init;   
                 // velocity1 = encoderA.getVelocity() * PULSE_TO_RAD;    
-                angle1 = encoderD.getPulses() *PULSE_TO_RAD + angle1_init;    
-                velocity1 = encoderD.getVelocity() * PULSE_TO_RAD;
+                float angle1 = encoderD.getPulses() *PULSE_TO_RAD + angle1_init;    
+                float velocity1 = encoderD.getVelocity() * PULSE_TO_RAD;
                  
                 // angle2 = encoderB.getPulses() * PULSE_TO_RAD + angle2_init;       
                 // velocity2 = encoderB.getVelocity() * PULSE_TO_RAD;         
-                angle2 = encoderC.getPulses() * PULSE_TO_RAD + angle2_init;       
-                velocity2 = encoderC.getVelocity() * PULSE_TO_RAD;   
+                float angle2 = encoderC.getPulses() * PULSE_TO_RAD + angle2_init;       
+                float velocity2 = encoderC.getVelocity() * PULSE_TO_RAD;   
                 
                 const float th1 = angle1;
                 const float th2 = angle2;
@@ -193,9 +196,8 @@ int main (void)
                 float dth1_des = desired_joint_state.dth1;
                 float dth2_des = desired_joint_state.dth2;
 
-                current_pair desired_current = get_desired_current(joints_R_state, gains, desired_joint_state, k_t);
-                current_des1 = desired_current.current1;
-                current_des2 = desired_current.current2;
+                current_pair desired_current = get_desired_current(joints_R_state, gains, desired_joint_state, current_controller1.k_t);
+                current_controller1.desired_currents = desired_current;
 
                 // Form output to send to MATLAB     
                 float output_data[NUM_OUTPUTS];
@@ -207,16 +209,10 @@ int main (void)
                 output_struct.jointsR = joints_R_state;
                 output_struct.des_footR = desired_foot_state;
                 output_struct.des_jointsR = desired_joint_state;    
-                output_struct.current_pairR = {
-                    .current1 = current1,
-                    .current2 = current2,
-                };
-                output_struct.des_current_pairR = {
-                    .current1 = current_des1,
-                    .current2 = current_des2,
-                };
-                output_struct.dutycycleR1 = duty_cycleR1;
-                output_struct.dutycycleR2 = duty_cycleR2;
+                output_struct.current_pairR = current_controller1.currents;
+                output_struct.des_current_pairR = current_controller1.desired_currents;
+                output_struct.dutycycleR1 = current_controller1.duty_cycle1;
+                output_struct.dutycycleR2 = current_controller1.duty_cycle2;
 
                 output_struct2array(output_struct, output_data);
                 
@@ -228,7 +224,7 @@ int main (void)
             
             // Cleanup after experiment
             server.setExperimentComplete();
-            currentLoop.detach();
+            currentLoop1.detach();
             motorShield.motorAWrite(0, 0); //turn motor A off
             motorShield.motorDWrite(0, 0);
             motorShield.motorBWrite(0, 0); //turn motor B off
