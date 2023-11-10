@@ -25,27 +25,9 @@ QEI encoderC(PC_6, PC_7, NC, 1200, QEI::X4_ENCODING);  // MOTOR C ENCODER (no in
 QEI encoderD(PD_12, PD_13, NC, 1200, QEI::X4_ENCODING);// MOTOR D ENCODER (no index, 1200 counts/rev, Quadrature encoding)
 
 MotorShield motorShield(24000); //initialize the motor shield with a period of 12000 ticks or ~20kHZ
-Ticker currentLoop;
 
-// Variables for q1
-float current1;
-float current_des1 = 0;
-float prev_current_des1 = 0;
-float current_int1 = 0;
-float angle1;
-float velocity1;
-float duty_cycleR1;
-float angle1_init;
-
-// Variables for q2
-float current2;
-float current_des2 = 0;
-float prev_current_des2 = 0;
-float current_int2 = 0;
-float angle2;
-float velocity2;
-float duty_cycleR2;
-float angle2_init;
+Ticker currentLoop1;
+Ticker currentLoop2;
 
 #define N_param 18.75
 const float Ir_param = 0.0035/pow(N_param,2);
@@ -73,24 +55,9 @@ const kinematic_params params = {
 // Timing parameters
 float current_control_period_us = 200.0f;     // 5kHz current control loop
 float impedance_control_period_us = 1000.0f;  // 1kHz impedance control loop
-float start_period, traj_period, end_period;
-
-// Control parameters
-float current_Kp = 4.0f;         
-float current_Ki = 0.4f;           
-float current_int_max = 3.0f;       
-float duty_max;      
+float start_period, traj_period, end_period;     
 
 struct leg_gain gains;
-
-// Model parameters
-float supply_voltage = 12;     // motor supply voltage
-float R = 2.0f;                // motor resistance
-float k_t = 0.18f;             // motor torque constant
-float nu = 0.0005;             // motor viscous friction
-
-// Current control interrupt function
-
 
 int main (void)
 {
@@ -128,8 +95,16 @@ int main (void)
             rDesFoot_bez.setPoints(input_struct.foot_points);
             
             // Attach current loop interrupt
+            CurrentLoopController controller1(
+                duty_max,
+                [&motorShield](float dutyCycle, int direction) { motorShield.motorDWrite(dutyCycle, direction); },
+                [&motorShield]() { return motorShield.readCurrentD(); },
+                [&encoderD]() { return encoderD.getVelocity(); },
+                [&motorShield](float dutyCycle, int direction) { motorShield.motorCWrite(dutyCycle, direction); },
+                [&motorShield]() { return motorShield.readCurrentC(); },
+                [&encoderC]() { return encoderC.getVelocity(); });
             
-            currentLoop.attach_us(,current_control_period_us);
+            currentLoop1.attach_us(callback(&controller1, &CurrentLoopController::callback),current_control_period_us);
                         
             // Setup experiment
             t.reset();
