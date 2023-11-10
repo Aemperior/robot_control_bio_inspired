@@ -3,6 +3,17 @@
 #include "kinematics.h"
 #include <functional>
 
+#include "mbed.h"
+#include "rtos.h"
+#include "EthernetInterface.h"
+#include "ExperimentServer.h"
+#include "QEI.h"
+#include "BezierCurve.h"
+#include "MotorShield.h" 
+#include "HardwareSetup.h"
+#include "Matrix.h"
+#include "MatrixMath.h"
+
 struct current_pair{
     float current1; 
     float current2; 
@@ -19,20 +30,46 @@ struct leg_gain{
 
 struct current_pair get_desired_current(struct joint_state state, struct leg_gain, struct joint_state desired_state, float k_t); 
 
+enum motor{
+    MOTOR_A,
+    MOTOR_B,
+    MOTOR_C,
+    MOTOR_D,    
+};
+
+struct leg_config{
+    enum motor motor1,
+    enum motor motor2,
+    float initial_angle1,
+    float initial_angle2,
+};
+
 class CurrentLoopController {
 public:
-    using MotorWriteFunction = std::function<void(float, int)>;
-    using MotorReadCurrentFunction = std::function<uint32_t()>;
-    using EncoderVelocityFunction = std::function<float()>;
+    // using MotorWriteFunction = std::function<void(float, int)>;
+    // using MotorReadCurrentFunction = std::function<uint32_t()>;
+    // using EncoderVelocityFunction = std::function<float()>;
 
+    QEI encoder1; 
+    QEI encoder2;
+    MotorShield motorshield; 
+    struct leg_config leg_conf; 
+
+    // CurrentLoopController(
+    //                       float duty_max,
+    //                       MotorWriteFunction motorWrite_1_Func, 
+    //                       MotorReadCurrentFunction motorReadCurrent_1_Func,
+    //                       EncoderVelocityFunction motorReadVelocity_1_Func,
+    //                       MotorWriteFunction motorWrite_2_Func,
+    //                       MotorReadCurrentFunction motorReadCurrent_2_Func,
+    //                       EncoderVelocityFunction motorReadVelocity_2_Func);
     CurrentLoopController(
-                          float duty_max,
-                          MotorWriteFunction motorWrite_1_Func, 
-                          MotorReadCurrentFunction motorReadCurrent_1_Func,
-                          EncoderVelocityFunction motorReadVelocity_1_Func,
-                          MotorWriteFunction motorWrite_2_Func,
-                          MotorReadCurrentFunction motorReadCurrent_2_Func,
-                          EncoderVelocityFunction motorReadVelocity_2_Func);
+                            float duty_max,
+                            struct leg_config leg_conf,
+                            QEI encoder1,
+                            QEI encoder2,
+                            MotorShield motorshield
+    )
 
     void setParameters(/* parameters */);
 
@@ -53,12 +90,13 @@ public:
 
 private:
 
-    MotorWriteFunction motorWrite_1_Func;
-    MotorReadCurrentFunction motorReadCurrent_1_Func;
-    EncoderVelocityFunction motorReadVelocity_1_Func;
-    MotorWriteFunction motorWrite_2_Func;
-    MotorReadCurrentFunction motorReadCurrent_2_Func;
-    EncoderVelocityFunction motorReadVelocity_2_Func;
+    // MotorWriteFunction motorWrite_1_Func;
+    // MotorReadCurrentFunction motorReadCurrent_1_Func;
+    // EncoderVelocityFunction motorReadVelocity_1_Func;
+    // MotorWriteFunction motorWrite_2_Func;
+    // MotorReadCurrentFunction motorReadCurrent_2_Func;
+    // EncoderVelocityFunction motorReadVelocity_2_Func;
+
 
     // Your parameters here
 
@@ -75,4 +113,10 @@ private:
     float current_int2 = 0.0f;
 };
 
-struct joint_states get_joint_states()
+float readCurrent(motor m); 
+
+float readVelocity(motor m);
+
+float readAngle(motor m, float initialAngle); 
+
+void writeMotor(motor m, float dutyCycle, int direction);

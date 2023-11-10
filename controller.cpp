@@ -27,23 +27,37 @@ struct current_pair get_desired_current(struct joint_state state, struct leg_gai
 }
 
 
-CurrentLoopController::CurrentLoopController(
-                          float duty_max,
-                          MotorWriteFunction motorWrite_1_Func, 
-                          MotorReadCurrentFunction motorReadCurrent_1_Func,
-                          EncoderVelocityFunction motorReadVelocity_1_Func,
-                          MotorWriteFunction motorWrite_2_Func,
-                          MotorReadCurrentFunction motorReadCurrent_2_Func,
-                          EncoderVelocityFunction motorReadVelocity_2_Func) :    
-    motorWrite_1_Func(motorWrite_1_Func),
-    motorReadCurrent_1_Func(motorReadCurrent_1_Func),
-    motorReadVelocity_1_Func(motorReadVelocity_1_Func),
-    motorWrite_2_Func(motorWrite_2_Func),
-    motorReadCurrent_2_Func(motorReadCurrent_2_Func),
-    motorReadVelocity_2_Func(motorReadVelocity_2_Func)
-{
+// CurrentLoopController::CurrentLoopController(
+//                           float duty_max,
+//                           MotorWriteFunction motorWrite_1_Func, 
+//                           MotorReadCurrentFunction motorReadCurrent_1_Func,
+//                           EncoderVelocityFunction motorReadVelocity_1_Func,
+//                           MotorWriteFunction motorWrite_2_Func,
+//                           MotorReadCurrentFunction motorReadCurrent_2_Func,
+//                           EncoderVelocityFunction motorReadVelocity_2_Func) :    
+//     motorWrite_1_Func(motorWrite_1_Func),
+//     motorReadCurrent_1_Func(motorReadCurrent_1_Func),
+//     motorReadVelocity_1_Func(motorReadVelocity_1_Func),
+//     motorWrite_2_Func(motorWrite_2_Func),
+//     motorReadCurrent_2_Func(motorReadCurrent_2_Func),
+//     motorReadVelocity_2_Func(motorReadVelocity_2_Func)
+// {
 
-    // Your parameters here 
+//     // Your parameters here 
+//     this->duty_max = duty_max;
+// }
+
+CurrentLoopController::CurrentLoopController(
+                            float duty_max,
+                            struct leg_config leg_conf,
+                            QEI encoder1,
+                            QEI encoder2,
+                            MotorShield motorshield) : 
+    encoder1(encoder1),
+    encoder2(encoder2),
+    motorshield(motorshield)
+{
+    this->leg_conf = leg_conf;  
     this->duty_max = duty_max;
 }
 
@@ -56,8 +70,9 @@ void CurrentLoopController::callback()
         
     // current1 = -(((float(motorShield.readCurrentA())/65536.0f)*30.0f)-15.0f);           // measure current
     // velocity1 = encoderA.getVelocity() * PULSE_TO_RAD;                                  // measure velocity   
-    currents.current1 = -(((float(motorReadCurrent_1_Func())/65536.0f)*30.0f)-15.0f);           // measure current
-    joint_states.dth1 = motorReadVelocity_1_Func() * PULSE_TO_RAD;                                  // measure velocity        
+
+    currents.current1 = readCurrent(leg_conf.motor1);           // measure current
+    joint_states.dth1 = readVelocity(leg_conf.motor1) * PULSE_TO_RAD;                                  // measure velocity        
     float err_c1 = desired_currents.current1 - currents.current1;                                             // current errror
     current_int1 += err_c1;                                                             // integrate error
     current_int1 = fmaxf( fminf(current_int1, current_int_max), -current_int_max);      // anti-windup
@@ -71,14 +86,14 @@ void CurrentLoopController::callback()
         absDuty1 = duty_max;
     }    
     if (duty_cycle1 < 0) { // backwards
-        motorWrite_1_Func(absDuty1, 1);
+        writeMotor(leg_conf.motor1, absDuty1, 1);
     } else { // forwards
-        motorWrite_1_Func(absDuty1, 0);
+        writeMotor(leg_conf.motor1, absDuty1, 0);
     }             
     
 
-    currents.current2 = -(((float(motorReadCurrent_1_Func())/65536.0f)*30.0f)-15.0f);       // measure current
-    joint_states.dth2 = motorReadVelocity_2_Func() * PULSE_TO_RAD;                                  // measure velocity  
+    currents.current2 = readCurrent(leg_conf.motor2);      // measure current
+    joint_states.dth2 = readVelocity(leg_conf.motor2) * PULSE_TO_RAD;                                  // measure velocity  
     float err_c2 = desired_currents.current2 - currents.current2;                                             // current error
     current_int2 += err_c2;                                                             // integrate error
     current_int2 = fmaxf( fminf(current_int2, current_int_max), -current_int_max);      // anti-windup   
@@ -91,11 +106,79 @@ void CurrentLoopController::callback()
         absDuty2 = duty_max;
     }    
     if (duty_cycle2 < 0) { // backwards
-        motorWrite_2_Func(absDuty2, 1);
+        writeMotor(leg_conf.motor2, absDuty2, 1);
     } else { // forwards
-        motorWrite_2_Func(absDuty2, 0);
+        writeMotor(leg_conf.motor2, absDuty2, 0);
     }   
 
     previous_currents = currents;           
     
+}
+
+float readCurrent(motor m) {
+    switch (m) {
+        case MOTOR_A:
+            return -(((float(motorShield.readCurrentA()) / 65536.0f) * 30.0f) - 15.0f);
+        case MOTOR_B:
+            return -(((float(motorShield.readCurrentB()) / 65536.0f) * 30.0f) - 15.0f);
+        case MOTOR_C:
+            return -(((float(motorShield.readCurrentC()) / 65536.0f) * 30.0f) - 15.0f);
+        case MOTOR_D:
+            return -(((float(motorShield.readCurrentD()) / 65536.0f) * 30.0f) - 15.0f);
+        default:
+            // Handle unknown case or throw an exception
+            return 0.0f;
+    }
+}
+
+float readAngle(motor m, float initialAngle) {
+    switch (m) {
+        case MOTOR_A:
+            return encoderA.getPulses() * PULSE_TO_RAD + initialAngle;
+        case MOTOR_B:
+            return encoderB.getPulses() * PULSE_TO_RAD + initialAngle;
+        case MOTOR_C:
+            return encoderC.getPulses() * PULSE_TO_RAD + initialAngle;
+        case MOTOR_D:
+            return encoderD.getPulses() * PULSE_TO_RAD + initialAngle;
+        default:
+            // Handle unknown case or throw an exception
+            return 0.0f;
+    }
+}
+
+float readVelocity(motor m) {
+    switch (m) {
+        case MOTOR_A:
+            return encoderA.getVelocity() * PULSE_TO_RAD;
+        case MOTOR_B:
+            return encoderB.getVelocity() * PULSE_TO_RAD;
+        case MOTOR_C:
+            return encoderC.getVelocity() * PULSE_TO_RAD;
+        case MOTOR_D:
+            return encoderD.getVelocity() * PULSE_TO_RAD;
+        default:
+            // Handle unknown case or throw an exception
+            return 0.0f;
+    }
+}
+
+void writeMotor(motor m, float dutyCycle, int direction) {
+    switch (m) {
+        case MOTOR_A:
+            motorShield.motorAWrite(dutyCycle, direction);
+            break;
+        case MOTOR_B:
+            motorShield.motorBWrite(dutyCycle, direction);
+            break;
+        case MOTOR_C:
+            motorShield.motorCWrite(dutyCycle, direction);
+            break;
+        case MOTOR_D:
+            motorShield.motorDWrite(dutyCycle, direction);
+            break;
+        default:
+            // Handle unknown case or throw an exception
+            break;
+    }
 }

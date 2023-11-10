@@ -98,15 +98,24 @@ int main (void)
             rDesFoot_bez.setPoints(input_struct.foot_points);
             
             // Attach current loop interrupt
+            // CurrentLoopController current_controller1(
+            //     duty_max,
+            //     [&motorShield](float dutyCycle, int direction) { motorShield.motorDWrite(dutyCycle, direction); },
+            //     [&motorShield]() { return motorShield.readCurrentD(); },
+            //     [&encoderD]() { return encoderD.getVelocity(); },
+            //     [&motorShield](float dutyCycle, int direction) { motorShield.motorCWrite(dutyCycle, direction); },
+            //     [&motorShield]() { return motorShield.readCurrentC(); },
+            //     [&encoderC]() { return encoderC.getVelocity(); });
+            
             CurrentLoopController current_controller1(
                 duty_max,
-                [&motorShield](float dutyCycle, int direction) { motorShield.motorDWrite(dutyCycle, direction); },
-                [&motorShield]() { return motorShield.readCurrentD(); },
-                [&encoderD]() { return encoderD.getVelocity(); },
-                [&motorShield](float dutyCycle, int direction) { motorShield.motorCWrite(dutyCycle, direction); },
-                [&motorShield]() { return motorShield.readCurrentC(); },
-                [&encoderC]() { return encoderC.getVelocity(); });
-            
+                {
+                    .motor1 = MOTOR_D,
+                    .motor2 = MOTOR_C,},
+                encoderD,
+                encoderC,
+                motorShield);
+
             currentLoop1.attach_us(callback(&current_controller1, &CurrentLoopController::callback),current_control_period_us);
                         
             // Setup experiment
