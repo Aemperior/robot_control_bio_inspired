@@ -17,3 +17,15 @@ struct leg_gain{
 };
 
 struct current_pair get_desired_current(struct joint_state state, struct leg_gain, struct joint_state desired_state, float k_t); 
+
+class CurrentLoopController {
+public:
+    CurrentLoopController(/* parameters */);
+
+    void setParameters(/* parameters */);
+
+    void callback();
+
+private:
+    // Your parameters here
+};
