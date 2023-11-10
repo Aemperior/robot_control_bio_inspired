@@ -188,20 +188,20 @@ int main (void)
                 vDesFoot[1]*=vMult;
                 
                 // Calculate the inverse kinematics (joint positions and velocities) for desired joint angles 
-                struct foot_state desired_foot_stateR = {
-                    .xFoot = rDesFoot[0],
-                    .yFoot = rDesFoot[1],
-                    .dxFoot = vDesFoot[0],
-                    .dyFoot = vDesFoot[1],
-                };
-                // struct foot_state desired_foot_stateR = foot_R_state; 
-                struct foot_state desired_foot_stateL = {
-                    .xFoot = rDesFoot[0],
-                    .yFoot = rDesFoot[1],
-                    .dxFoot = vDesFoot[0],
-                    .dyFoot = vDesFoot[1],
-                };
-                // struct foot_state desired_foot_stateL = foot_R_state; 
+                // struct foot_state desired_foot_stateR = {
+                //     .xFoot = rDesFoot[0],
+                //     .yFoot = rDesFoot[1],
+                //     .dxFoot = vDesFoot[0],
+                //     .dyFoot = vDesFoot[1],
+                // };
+                struct foot_state desired_foot_stateR = foot_R_state; 
+                // struct foot_state desired_foot_stateL = {
+                //     .xFoot = rDesFoot[0],
+                //     .yFoot = rDesFoot[1],
+                //     .dxFoot = vDesFoot[0],
+                //     .dyFoot = vDesFoot[1],
+                // };
+                struct foot_state desired_foot_stateL = foot_R_state; 
 
                 struct joint_state desired_joint_stateR = calc_desired_joints(desired_foot_stateR, J_R, params); 
                 struct joint_state desired_joint_stateL = calc_desired_joints(desired_foot_stateL, J_L, params); 
