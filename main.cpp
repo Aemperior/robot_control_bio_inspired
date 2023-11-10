@@ -12,10 +12,6 @@
 #include "matlab.h"
 #include "controller.h"
 
-#define BEZIER_ORDER_FOOT    7
-#define NUM_INPUTS (12 + 2*(BEZIER_ORDER_FOOT+1))
-#define NUM_OUTPUTS 19
-
 #define PULSE_TO_RAD (2.0f*3.14159f / 1200.0f)
 
 // Initializations
@@ -42,7 +38,7 @@ float prev_current_des1 = 0;
 float current_int1 = 0;
 float angle1;
 float velocity1;
-float duty_cycle1;
+float duty_cycleR1;
 float angle1_init;
 
 // Variables for q2
@@ -52,7 +48,7 @@ float prev_current_des2 = 0;
 float current_int2 = 0;
 float angle2;
 float velocity2;
-float duty_cycle2;
+float duty_cycleR2;
 float angle2_init;
 
 #define N_param 18.75
@@ -113,15 +109,15 @@ void CurrentLoop()
     current_int1 += err_c1;                                                             // integrate error
     current_int1 = fmaxf( fminf(current_int1, current_int_max), -current_int_max);      // anti-windup
     float ff1 = R*current_des1 + k_t*velocity1;                                         // feedforward terms
-    duty_cycle1 = (ff1 + current_Kp*err_c1 + current_Ki*current_int1)/supply_voltage;   // PI current controller
+    duty_cycleR1 = (ff1 + current_Kp*err_c1 + current_Ki*current_int1)/supply_voltage;   // PI current controller
     
-    float absDuty1 = abs(duty_cycle1);
+    float absDuty1 = abs(duty_cycleR1);
     
     if (absDuty1 > duty_max) {
-        duty_cycle1 *= duty_max / absDuty1;
+        duty_cycleR1 *= duty_max / absDuty1;
         absDuty1 = duty_max;
     }    
-    if (duty_cycle1 < 0) { // backwards
+    if (duty_cycleR1 < 0) { // backwards
         motorShield.motorAWrite(absDuty1, 1);
         motorShield.motorDWrite(absDuty1, 1);
     } else { // forwards
@@ -138,14 +134,14 @@ void CurrentLoop()
     current_int2 += err_c2;                                                             // integrate error
     current_int2 = fmaxf( fminf(current_int2, current_int_max), -current_int_max);      // anti-windup   
     float ff2 = R*current_des2 + k_t*velocity2;                                         // feedforward terms
-    duty_cycle2 = (ff2 + current_Kp*err_c2 + current_Ki*current_int2)/supply_voltage;   // PI current controller
+    duty_cycleR2 = (ff2 + current_Kp*err_c2 + current_Ki*current_int2)/supply_voltage;   // PI current controller
     
-    float absDuty2 = abs(duty_cycle2);
+    float absDuty2 = abs(duty_cycleR2);
     if (absDuty2 > duty_max) {
-        duty_cycle2 *= duty_max / absDuty2;
+        duty_cycleR2 *= duty_max / absDuty2;
         absDuty2 = duty_max;
     }    
-    if (duty_cycle2 < 0) { // backwards
+    if (duty_cycleR2 < 0) { // backwards
         motorShield.motorBWrite(absDuty2, 1);
         motorShield.motorCWrite(absDuty2, 1);
     } else { // forwards
@@ -226,7 +222,7 @@ int main (void)
                 const float dth1= velocity1;
                 const float dth2= velocity2;
 
-                joint_state joint_state_foot1 = {
+                joint_state joints_R_state = {
                     .th1 = th1,
                     .th2 = th2,
                     .dth1 = dth1,
@@ -237,11 +233,7 @@ int main (void)
                 foot_jacobian J = calc_foot_jacobi(th1, th2, params); 
                                 
                 // Calculate the forward kinematics (position and velocity)
-                foot_state foot_state_foot1= calc_forward_kinematics(joint_state_foot1, params); 
-                float xFoot =  foot_state_foot1.xFoot; 
-                float yFoot =  foot_state_foot1.yFoot; 
-                float dxFoot = foot_state_foot1.dxFoot; 
-                float dyFoot = foot_state_foot1.dxFoot; 
+                foot_state foot_R_state= calc_forward_kinematics(joints_R_state, params); 
 
                 // Set gains based on buffer and traj times, then calculate desired x,y from Bezier trajectory at current time if necessary
                 float teff  = 0;
@@ -285,35 +277,32 @@ int main (void)
                 float dth1_des = desired_joint_state.dth1;
                 float dth2_des = desired_joint_state.dth2;
 
-                current_pair desired_current = get_desired_current(joint_state_foot1, gains, desired_joint_state, k_t);
+                current_pair desired_current = get_desired_current(joints_R_state, gains, desired_joint_state, k_t);
                 current_des1 = desired_current.current1;
                 current_des2 = desired_current.current2;
 
                 // Form output to send to MATLAB     
                 float output_data[NUM_OUTPUTS];
-                // current time
-                output_data[0] = t.read();
-                // motor 1 state
-                output_data[1] = angle1;
-                output_data[2] = velocity1;  
-                output_data[3] = current1;
-                output_data[4] = current_des1;
-                output_data[5] = duty_cycle1;
-                // motor 2 state
-                output_data[6] = angle2;
-                output_data[7] = velocity2;
-                output_data[8] = current2;
-                output_data[9] = current_des2;
-                output_data[10]= duty_cycle2;
-                // foot state
-                output_data[11] = xFoot;
-                output_data[12] = yFoot;
-                output_data[13] = dxFoot;
-                output_data[14] = dyFoot;
-                output_data[15] = rDesFoot[0];
-                output_data[16] = rDesFoot[1];
-                output_data[17] = vDesFoot[0];
-                output_data[18] = vDesFoot[1];
+                
+                struct to_matlab output_struct; 
+
+                output_struct.t = t.read();
+                output_struct.footR = foot_R_state;
+                output_struct.jointsR = joints_R_state;
+                output_struct.des_footR = desired_foot_state;
+                output_struct.des_jointsR = desired_joint_state;    
+                output_struct.current_pairR = {
+                    .current1 = current1,
+                    .current2 = current2,
+                };
+                output_struct.des_current_pairR = {
+                    .current1 = current_des1,
+                    .current2 = current_des2,
+                };
+                output_struct.dutycycleR1 = duty_cycleR1;
+                output_struct.dutycycleR2 = duty_cycleR2;
+
+                output_struct2array(output_struct, output_data);
                 
                 // Send data to MATLAB
                 server.sendData(output_data,NUM_OUTPUTS);
