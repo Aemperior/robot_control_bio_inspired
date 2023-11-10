@@ -74,3 +74,5 @@ private:
     float current_int1 = 0.0f;
     float current_int2 = 0.0f;
 };
+
+struct joint_states get_joint_states()

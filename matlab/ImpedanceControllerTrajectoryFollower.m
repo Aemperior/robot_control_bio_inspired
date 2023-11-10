@@ -6,14 +6,22 @@
 
 % Bezier curve control points
 const_point = [-0.1; -0.13]; %[x;y] or [q1,q2] constant coordinate (x,q1,q2 coordinates should be opposite sign due to direction motors are mounted)
-pts_foot = repmat(const_point,1,8);
+pts_foot_R = repmat(const_point,1,8);
        
-pts_foot = [0.1624    0.1624    0.1624    0.0619   -0.1636    0.0035    0.0035    0.0035;
+pts_foot_R = [0.1624    0.1624    0.1624    0.0619   -0.1636    0.0035    0.0035    0.0035;
+               -0.1265   -0.1265   -0.1265   -0.2527   -0.2293   -0.1417   -0.1417   -0.1417]; % YOUR BEZIER PTS HERE
+
+pts_foot_L = repmat(const_point,1,8);
+       
+pts_foot_L = [0.1624    0.1624    0.1624    0.0619   -0.1636    0.0035    0.0035    0.0035;
                -0.1265   -0.1265   -0.1265   -0.2527   -0.2293   -0.1417   -0.1417   -0.1417]; % YOUR BEZIER PTS HERE
 
 % Initial leg angles for encoder resets (negative of q1,q2 in lab handout due to direction motors are mounted)
-angle1_init = 0;
-angle2_init = -pi/2; 
+angleR1_init = 0;
+angleR2_init = -pi/2; 
+angleL1_init = 0;
+angleL2_init = -pi/2;
+
 
 % Total experiment time is buffer,trajectory,buffer
 traj_time         = 0.5;
@@ -35,7 +43,7 @@ gains.D_xy = 0;
 duty_max   = 0.4;
 
 %% Run Experiment
-[output_data] = RunTrajectoryExperiment(angle1_init, angle2_init, pts_foot,...
+[output_data] = RunTrajectoryExperiment(angleR1_init, angleR2_init, pts_foot_R,...
                                         traj_time, pre_buffer_time, post_buffer_time,...
                                         gains, duty_max);
 

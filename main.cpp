@@ -125,31 +125,16 @@ int main (void)
             // Run experiment
             while( t.read() < start_period + traj_period + end_period) { 
                  
-                // Read encoders to get motor states
-                // angle1 = encoderA.getPulses() *PULSE_TO_RAD + angle1_init;   
-                // velocity1 = encoderA.getVelocity() * PULSE_TO_RAD;    
-                float angle1 = encoderD.getPulses() *PULSE_TO_RAD + angle1_init;    
-                float velocity1 = encoderD.getVelocity() * PULSE_TO_RAD;
-                 
-                // angle2 = encoderB.getPulses() * PULSE_TO_RAD + angle2_init;       
-                // velocity2 = encoderB.getVelocity() * PULSE_TO_RAD;         
-                float angle2 = encoderC.getPulses() * PULSE_TO_RAD + angle2_init;       
-                float velocity2 = encoderC.getVelocity() * PULSE_TO_RAD;   
-                
-                const float th1 = angle1;
-                const float th2 = angle2;
-                const float dth1= velocity1;
-                const float dth2= velocity2;
-
+                // Read encoders to get motor states   
                 joint_state joints_R_state = {
-                    .th1 = th1,
-                    .th2 = th2,
-                    .dth1 = dth1,
-                    .dth2 = dth2,
+                    .th1 = encoderD.getPulses() *PULSE_TO_RAD + angle1_init,
+                    .th2 = encoderC.getPulses() * PULSE_TO_RAD + angle2_init,
+                    .dth1 = encoderD.getVelocity() * PULSE_TO_RAD,
+                    .dth2 = encoderC.getVelocity() * PULSE_TO_RAD,
                 };
  
                 // Calculate the Jacobian  
-                foot_jacobian J = calc_foot_jacobi(th1, th2, params); 
+                foot_jacobian J_R = calc_foot_jacobi(th1, th2, params); 
                                 
                 // Calculate the forward kinematics (position and velocity)
                 foot_state foot_R_state= calc_forward_kinematics(joints_R_state, params); 
@@ -190,11 +175,7 @@ int main (void)
                     .dyFoot = vDesFoot[1],
                 };
 
-                joint_state desired_joint_state = calc_desired_joints(desired_foot_state, J, params); 
-                float th1_des = desired_joint_state.th1;
-                float th2_des = desired_joint_state.th2;
-                float dth1_des = desired_joint_state.dth1;
-                float dth2_des = desired_joint_state.dth2;
+                joint_state desired_joint_state = calc_desired_joints(desired_foot_state, J_R, params); 
 
                 current_pair desired_current = get_desired_current(joints_R_state, gains, desired_joint_state, current_controller1.k_t);
                 current_controller1.desired_currents = desired_current;
