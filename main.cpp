@@ -9,6 +9,7 @@
 #include "Matrix.h"
 #include "MatrixMath.h"
 #include "kinematics.h"
+#include "matlab.h"
 
 #define BEZIER_ORDER_FOOT    7
 #define NUM_INPUTS (12 + 2*(BEZIER_ORDER_FOOT+1))
