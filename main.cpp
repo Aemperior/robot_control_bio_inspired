@@ -188,26 +188,28 @@ int main (void)
                 vDesFoot[1]*=vMult;
                 
                 // Calculate the inverse kinematics (joint positions and velocities) for desired joint angles 
-                foot_state desired_foot_stateR = {
+                struct foot_state desired_foot_stateR = {
                     .xFoot = rDesFoot[0],
                     .yFoot = rDesFoot[1],
                     .dxFoot = vDesFoot[0],
                     .dyFoot = vDesFoot[1],
                 };
-                foot_state desired_foot_stateL = {
+                // struct foot_state desired_foot_stateR = foot_R_state; 
+                struct foot_state desired_foot_stateL = {
                     .xFoot = rDesFoot[0],
                     .yFoot = rDesFoot[1],
                     .dxFoot = vDesFoot[0],
                     .dyFoot = vDesFoot[1],
                 };
+                // struct foot_state desired_foot_stateL = foot_R_state; 
 
-                joint_state desired_joint_stateR = calc_desired_joints(desired_foot_stateR, J_R, params); 
-                joint_state desired_joint_stateL = calc_desired_joints(desired_foot_stateL, J_L, params); 
+                struct joint_state desired_joint_stateR = calc_desired_joints(desired_foot_stateR, J_R, params); 
+                struct joint_state desired_joint_stateL = calc_desired_joints(desired_foot_stateL, J_L, params); 
 
-                current_pair desired_currentR = get_desired_current(joints_R_state, gains, desired_joint_stateR, current_controllerR.k_t);
+                struct current_pair desired_currentR = get_desired_current(joints_R_state, gains, desired_joint_stateR, current_controllerR.k_t);
                 current_controllerR.desired_currents = desired_currentR;
 
-                current_pair desired_currentL = get_desired_current(joints_L_state, gains, desired_joint_stateL, current_controllerL.k_t);
+                struct current_pair desired_currentL = get_desired_current(joints_L_state, gains, desired_joint_stateL, current_controllerL.k_t);
                 current_controllerL.desired_currents = desired_currentL;
 
                 // Form output to send to MATLAB     
