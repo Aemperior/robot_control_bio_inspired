@@ -1,18 +1,7 @@
 #pragma once
 
+#include "pragma_replacement.h"
 #include "kinematics.h"
-#include <functional>
-
-#include "mbed.h"
-#include "rtos.h"
-#include "EthernetInterface.h"
-#include "ExperimentServer.h"
-#include "QEI.h"
-#include "BezierCurve.h"
-#include "MotorShield.h" 
-#include "HardwareSetup.h"
-#include "Matrix.h"
-#include "MatrixMath.h"
 
 struct current_pair{
     float current1; 
@@ -38,10 +27,10 @@ enum motor{
 };
 
 struct leg_config{
-    enum motor motor1,
-    enum motor motor2,
-    float initial_angle1,
-    float initial_angle2,
+    enum motor motor1;
+    enum motor motor2;
+    float initial_angle1;
+    float initial_angle2;
 };
 
 class CurrentLoopController {
@@ -50,9 +39,9 @@ public:
     // using MotorReadCurrentFunction = std::function<uint32_t()>;
     // using EncoderVelocityFunction = std::function<float()>;
 
-    QEI encoder1; 
-    QEI encoder2;
-    MotorShield motorshield; 
+    QEI *encoder1_ptr; 
+    QEI *encoder2_ptr;
+    MotorShield *motorshield_ptr; 
     struct leg_config leg_conf; 
 
     // CurrentLoopController(
@@ -66,12 +55,12 @@ public:
     CurrentLoopController(
                             float duty_max,
                             struct leg_config leg_conf,
-                            QEI encoder1,
-                            QEI encoder2,
-                            MotorShield motorshield
-    )
+                            QEI *encoder1_ptr,
+                            QEI *encoder2_ptr,
+                            MotorShield *motorshield_ptr
+    );
 
-    void setParameters(/* parameters */);
+    //void setParameters(/* parameters */);
 
     void callback();
 
@@ -87,6 +76,14 @@ public:
     float R = 2.0f;                // motor resistance
     float k_t = 0.18f;             // motor torque constant
     float nu = 0.0005;             // motor viscous friction  
+
+    float readCurrent(motor m); 
+
+    float readVelocity(motor m);
+    
+    float readAngle(motor m, float initialAngle); 
+    
+    void writeMotor(motor m, float dutyCycle, int direction);
 
 private:
 
@@ -112,11 +109,3 @@ private:
     float current_int1 = 0.0f;
     float current_int2 = 0.0f;
 };
-
-float readCurrent(motor m); 
-
-float readVelocity(motor m);
-
-float readAngle(motor m, float initialAngle); 
-
-void writeMotor(motor m, float dutyCycle, int direction);
