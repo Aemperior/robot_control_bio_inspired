@@ -26,6 +26,8 @@ angleL2_init = -pi/2;
 % Total experiment time is buffer,trajectory,buffer
 traj_time         = 0.5;
 pre_buffer_time   = 2; % this should be 0 for constant points, 2 for Bezier trajectories
+pre_buffer_timeR  = 2; 
+pre_buffer_timeL  = 3; 
 post_buffer_time  = 2;
 
 % Gains for impedance controller
@@ -43,8 +45,9 @@ gains.D_xy = 0;
 duty_max   = 0.4;
 
 %% Run Experiment
-[output_data] = RunTrajectoryExperiment(angleR1_init, angleR2_init, pts_foot_R,...
-                                        traj_time, pre_buffer_time, post_buffer_time,...
+[output_data] = RunTrajectoryExperiment(angleR1_init, angleR2_init, pts_foot_R, ...
+                                        angleL1_init, angleL2_init, pts_foot_L, ...
+                                        traj_time, pre_buffer_time, pre_buffer_timeR, pre_buffer_timeL, post_buffer_time,...
                                         gains, duty_max);
 
 %% Extract data
