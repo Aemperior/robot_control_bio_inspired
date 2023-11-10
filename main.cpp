@@ -107,17 +107,27 @@ int main (void)
             //     [&motorShield]() { return motorShield.readCurrentC(); },
             //     [&encoderC]() { return encoderC.getVelocity(); });
             
-            CurrentLoopController current_controller1(
+            CurrentLoopController current_controllerR(
                 duty_max,
                 {
                     .motor1 = MOTOR_D,
                     .motor2 = MOTOR_C,},
-                encoderD,
-                encoderC,
-                motorShield);
+                &encoderD,
+                &encoderC,
+                &motorShield);
 
-            currentLoop1.attach_us(callback(&current_controller1, &CurrentLoopController::callback),current_control_period_us);
-                        
+            CurrentLoopController current_controllerL(
+                duty_max,
+                {
+                    .motor1 = MOTOR_A,
+                    .motor2 = MOTOR_B,},
+                &encoderA,
+                &encoderB,
+                &motorShield);
+
+            currentLoop1.attach_us(callback(&current_controllerR, &CurrentLoopController::callback),current_control_period_us);
+            currentLoop2.attach_us(callback(&current_controllerL, &CurrentLoopController::callback),current_control_period_us);
+
             // Setup experiment
             t.reset();
             t.start();
@@ -141,12 +151,21 @@ int main (void)
                     .dth1 = encoderD.getVelocity() * PULSE_TO_RAD,
                     .dth2 = encoderC.getVelocity() * PULSE_TO_RAD,
                 };
+
+                joint_state joints_L_state = {
+                    .th1 = encoderA.getPulses() *PULSE_TO_RAD + angle1_init,
+                    .th2 = encoderB.getPulses() * PULSE_TO_RAD + angle2_init,
+                    .dth1 = encoderA.getVelocity() * PULSE_TO_RAD,
+                    .dth2 = encoderB.getVelocity() * PULSE_TO_RAD,
+                };
  
                 // Calculate the Jacobian  
-                foot_jacobian J_R = calc_foot_jacobi(th1, th2, params); 
+                foot_jacobian J_R = calc_foot_jacobi(joints_R_state.th1, joints_R_state.th2, params); 
+                foot_jacobian J_L = calc_foot_jacobi(joints_L_state.th1, joints_L_state.th2, params); 
                                 
                 // Calculate the forward kinematics (position and velocity)
-                foot_state foot_R_state= calc_forward_kinematics(joints_R_state, params); 
+                foot_state foot_R_state= calc_forward_kinematics(joints_R_state, params);                
+                foot_state foot_L_state= calc_forward_kinematics(joints_L_state, params); 
 
                 // Set gains based on buffer and traj times, then calculate desired x,y from Bezier trajectory at current time if necessary
                 float teff  = 0;
@@ -177,17 +196,27 @@ int main (void)
                 vDesFoot[1]*=vMult;
                 
                 // Calculate the inverse kinematics (joint positions and velocities) for desired joint angles 
-                foot_state desired_foot_state = {
+                foot_state desired_foot_stateR = {
+                    .xFoot = rDesFoot[0],
+                    .yFoot = rDesFoot[1],
+                    .dxFoot = vDesFoot[0],
+                    .dyFoot = vDesFoot[1],
+                };
+                foot_state desired_foot_stateL = {
                     .xFoot = rDesFoot[0],
                     .yFoot = rDesFoot[1],
                     .dxFoot = vDesFoot[0],
                     .dyFoot = vDesFoot[1],
                 };
 
-                joint_state desired_joint_state = calc_desired_joints(desired_foot_state, J_R, params); 
+                joint_state desired_joint_stateR = calc_desired_joints(desired_foot_stateR, J_R, params); 
+                joint_state desired_joint_stateL = calc_desired_joints(desired_foot_stateL, J_L, params); 
 
-                current_pair desired_current = get_desired_current(joints_R_state, gains, desired_joint_state, current_controller1.k_t);
-                current_controller1.desired_currents = desired_current;
+                current_pair desired_currentR = get_desired_current(joints_R_state, gains, desired_joint_stateR, current_controllerR.k_t);
+                current_controllerR.desired_currents = desired_currentR;
+
+                current_pair desired_currentL = get_desired_current(joints_L_state, gains, desired_joint_stateL, current_controllerL.k_t);
+                current_controllerL.desired_currents = desired_currentL;
 
                 // Form output to send to MATLAB     
                 float output_data[NUM_OUTPUTS];
@@ -197,12 +226,12 @@ int main (void)
                 output_struct.t = t.read();
                 output_struct.footR = foot_R_state;
                 output_struct.jointsR = joints_R_state;
-                output_struct.des_footR = desired_foot_state;
-                output_struct.des_jointsR = desired_joint_state;    
-                output_struct.current_pairR = current_controller1.currents;
-                output_struct.des_current_pairR = current_controller1.desired_currents;
-                output_struct.dutycycleR1 = current_controller1.duty_cycle1;
-                output_struct.dutycycleR2 = current_controller1.duty_cycle2;
+                output_struct.des_footR = desired_foot_stateR;
+                output_struct.des_jointsR = desired_joint_stateR;    
+                output_struct.current_pairR = current_controllerR.currents;
+                output_struct.des_current_pairR = current_controllerR.desired_currents;
+                output_struct.dutycycleR1 = current_controllerR.duty_cycle1;
+                output_struct.dutycycleR2 = current_controllerR.duty_cycle2;
 
                 output_struct2array(output_struct, output_data);
                 
