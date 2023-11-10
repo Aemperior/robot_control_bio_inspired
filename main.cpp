@@ -10,6 +10,7 @@
 #include "MatrixMath.h"
 #include "kinematics.h"
 #include "matlab.h"
+#include "controller.h"
 
 #define BEZIER_ORDER_FOOT    7
 #define NUM_INPUTS (12 + 2*(BEZIER_ORDER_FOOT+1))
@@ -87,12 +88,8 @@ float current_Kp = 4.0f;
 float current_Ki = 0.4f;           
 float current_int_max = 3.0f;       
 float duty_max;      
-float K_xx;
-float K_yy;
-float K_xy;
-float D_xx;
-float D_xy;
-float D_yy;
+
+struct leg_gain gains;
 
 // Model parameters
 float supply_voltage = 12;     // motor supply voltage
@@ -178,29 +175,21 @@ int main (void)
         // If there are new inputs, this code will run
         if (server.getParams(input_params,NUM_INPUTS)) {
             
-                        
-            // Get inputs from MATLAB          
-            start_period                = input_params[0];    // First buffer time, before trajectory
-            traj_period                 = input_params[1];    // Trajectory time/length
-            end_period                  = input_params[2];    // Second buffer time, after trajectory
-    
-            angle1_init                 = input_params[3];    // Initial angle for q1 (rad)
-            angle2_init                 = input_params[4];    // Initial angle for q2 (rad)
+            struct from_matlab input_struct; 
+            input_array2struct(input_params, &input_struct); 
 
-            K_xx                        = input_params[5];    // Foot stiffness N/m
-            K_yy                        = input_params[6];    // Foot stiffness N/m
-            K_xy                        = input_params[7];    // Foot stiffness N/m
-            D_xx                        = input_params[8];    // Foot damping N/(m/s)
-            D_yy                        = input_params[9];    // Foot damping N/(m/s)
-            D_xy                        = input_params[10];   // Foot damping N/(m/s)
-            duty_max                    = input_params[11];   // Maximum duty factor
-          
-            // Get foot trajectory points
-            float foot_pts[2*(BEZIER_ORDER_FOOT+1)];
-            for(int i = 0; i<2*(BEZIER_ORDER_FOOT+1);i++) {
-              foot_pts[i] = input_params[12+i];    
-            }
-            rDesFoot_bez.setPoints(foot_pts);
+            start_period    = input_struct.start_period;
+            traj_period     = input_struct.traj_period;    // Trajectory time/length
+            end_period      = input_struct.end_period;    // Second buffer time, after trajectory
+    
+            angle1_init     = input_struct.angleR1_init;    // Initial angle for q1 (rad)
+            angle2_init     = input_struct.angleR2_init;    // Initial angle for q2 (rad)
+
+            gains           = input_struct.gains; 
+            
+            duty_max        = input_struct.duty_max;   // Maximum duty factor
+
+            rDesFoot_bez.setPoints(input_struct.foot_points);
             
             // Attach current loop interrupt
             currentLoop.attach_us(CurrentLoop,current_control_period_us);
@@ -258,24 +247,12 @@ int main (void)
                 float teff  = 0;
                 float vMult = 0;
                 if( t < start_period) {
-                    if (K_xx > 0 || K_yy > 0) {
-                        K_xx = 100; 
-                        K_yy = 100; 
-                        D_xx = 5;  
-                        D_yy = 5;  
-                        K_xy = 0;
-                        D_xy = 0;
-                    }
+                    // Why does original code do something with gains here?
                     teff = 0;
                 }
                 else if (t < start_period + traj_period)
                 {
-                    K_xx = input_params[5];  // Foot stiffness N/m
-                    K_yy = input_params[6];  // Foot stiffness N/m
-                    K_xy = input_params[7];  // Foot stiffness N/m
-                    D_xx = input_params[8];  // Foot damping N/(m/s)
-                    D_yy = input_params[9];  // Foot damping N/(m/s)
-                    D_xy = input_params[10]; // Foot damping N/(m/s)
+                    gains = input_struct.gains; 
                     teff = (t-start_period);
                     vMult = 1;
                 }
@@ -308,8 +285,9 @@ int main (void)
                 float dth1_des = desired_joint_state.dth1;
                 float dth2_des = desired_joint_state.dth2;
 
-                current_des1 = (K_xx*(th1_des - th1) + D_xx*(dth1_des - dth1))/k_t; 
-                current_des2 = (K_yy*(th2_des - th2) + D_yy*(dth2_des - dth2))/k_t;  
+                current_pair desired_current = get_desired_current(joint_state_foot1, gains, desired_joint_state, k_t);
+                current_des1 = desired_current.current1;
+                current_des2 = desired_current.current2;
 
                 // Form output to send to MATLAB     
                 float output_data[NUM_OUTPUTS];

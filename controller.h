@@ -16,4 +16,4 @@ struct leg_gain{
     float D_yy;
 };
 
-// struct current_pair get_desired_current(struct joint_state state, struct leg_gain, struct joint_state desired_state); 
+struct current_pair get_desired_current(struct joint_state state, struct leg_gain, struct joint_state desired_state, float k_t); 
