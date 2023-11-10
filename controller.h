@@ -1,18 +1,7 @@
 #pragma once
 
+#include "pragma_replacement.h"
 #include "kinematics.h"
-#include <functional>
-
-#include "mbed.h"
-#include "rtos.h"
-#include "EthernetInterface.h"
-#include "ExperimentServer.h"
-#include "QEI.h"
-#include "BezierCurve.h"
-#include "MotorShield.h" 
-#include "HardwareSetup.h"
-#include "Matrix.h"
-#include "MatrixMath.h"
 
 struct current_pair{
     float current1; 
@@ -120,4 +109,3 @@ private:
     float current_int1 = 0.0f;
     float current_int2 = 0.0f;
 };
-

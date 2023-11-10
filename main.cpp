@@ -1,13 +1,5 @@
-#include "mbed.h"
-#include "rtos.h"
-#include "EthernetInterface.h"
-#include "ExperimentServer.h"
-#include "QEI.h"
-#include "BezierCurve.h"
-#include "MotorShield.h" 
-#include "HardwareSetup.h"
-#include "Matrix.h"
-#include "MatrixMath.h"
+#include "pragma_replacement.h"
+
 #include "kinematics.h"
 #include "matlab.h"
 #include "controller.h"
@@ -19,8 +11,8 @@ Serial pc(USBTX, USBRX);    // USB Serial Terminal
 ExperimentServer server;    // Object that lets us communicate with MATLAB
 Timer t;                    // Timer to measure elapsed time of experiment
 
-Ticker currentLoop1;
-Ticker currentLoop2;
+Ticker currentLoopR;
+Ticker currentLoopL;
 
 #define N_param 18.75
 const float Ir_param = 0.0035/pow(N_param,2);
@@ -125,8 +117,8 @@ int main (void)
                 &encoderB,
                 &motorShield);
 
-            currentLoop1.attach_us(callback(&current_controllerR, &CurrentLoopController::callback),current_control_period_us);
-            currentLoop2.attach_us(callback(&current_controllerL, &CurrentLoopController::callback),current_control_period_us);
+            currentLoopR.attach_us(callback(&current_controllerR, &CurrentLoopController::callback),current_control_period_us);
+            currentLoopL.attach_us(callback(&current_controllerL, &CurrentLoopController::callback),current_control_period_us);
 
             // Setup experiment
             t.reset();
@@ -196,26 +188,28 @@ int main (void)
                 vDesFoot[1]*=vMult;
                 
                 // Calculate the inverse kinematics (joint positions and velocities) for desired joint angles 
-                foot_state desired_foot_stateR = {
+                struct foot_state desired_foot_stateR = {
                     .xFoot = rDesFoot[0],
                     .yFoot = rDesFoot[1],
                     .dxFoot = vDesFoot[0],
                     .dyFoot = vDesFoot[1],
                 };
-                foot_state desired_foot_stateL = {
+                // struct foot_state desired_foot_stateR = foot_R_state; 
+                struct foot_state desired_foot_stateL = {
                     .xFoot = rDesFoot[0],
                     .yFoot = rDesFoot[1],
                     .dxFoot = vDesFoot[0],
                     .dyFoot = vDesFoot[1],
                 };
+                // struct foot_state desired_foot_stateL = foot_R_state; 
 
-                joint_state desired_joint_stateR = calc_desired_joints(desired_foot_stateR, J_R, params); 
-                joint_state desired_joint_stateL = calc_desired_joints(desired_foot_stateL, J_L, params); 
+                struct joint_state desired_joint_stateR = calc_desired_joints(desired_foot_stateR, J_R, params); 
+                struct joint_state desired_joint_stateL = calc_desired_joints(desired_foot_stateL, J_L, params); 
 
-                current_pair desired_currentR = get_desired_current(joints_R_state, gains, desired_joint_stateR, current_controllerR.k_t);
+                struct current_pair desired_currentR = get_desired_current(joints_R_state, gains, desired_joint_stateR, current_controllerR.k_t);
                 current_controllerR.desired_currents = desired_currentR;
 
-                current_pair desired_currentL = get_desired_current(joints_L_state, gains, desired_joint_stateL, current_controllerL.k_t);
+                struct current_pair desired_currentL = get_desired_current(joints_L_state, gains, desired_joint_stateL, current_controllerL.k_t);
                 current_controllerL.desired_currents = desired_currentL;
 
                 // Form output to send to MATLAB     
@@ -243,7 +237,8 @@ int main (void)
             
             // Cleanup after experiment
             server.setExperimentComplete();
-            currentLoop1.detach();
+            currentLoopR.detach();
+            currentLoopL.detach();
             motorShield.motorAWrite(0, 0); //turn motor A off
             motorShield.motorDWrite(0, 0);
             motorShield.motorBWrite(0, 0); //turn motor B off
