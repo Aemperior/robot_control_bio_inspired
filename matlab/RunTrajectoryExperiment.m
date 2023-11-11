@@ -1,5 +1,6 @@
-function output_data = RunTrajectoryExperiment( angleR1_init, angleR2_init, angleL1_init, angleL2_init, ...
-    pts_footR, pts_footL, traj_time, pre_buffer_time, pre_buffer_timeR, pre_buffer_timeL, post_buffer_time, gains, duty_max)
+function output_data = RunTrajectoryExperiment( angleR1_init, angleR2_init, pts_footR, ...
+    angleL1_init, angleL2_init, pts_footL, ...
+    traj_time, pre_buffer_time, pre_buffer_timeR, pre_buffer_timeL, post_buffer_time, gains, duty_max)
     
     % Figure for plotting motor data
     figure(1);  clf;       
@@ -137,7 +138,7 @@ function output_data = RunTrajectoryExperiment( angleR1_init, angleR2_init, angl
         dyLdes = new_data(:,37);
     
 
-        N = length(pos1);
+        N = length(posR1);
         
         % Update motor data plots
         h1.XData(end+1:end+N) = t;   
@@ -164,7 +165,7 @@ function output_data = RunTrajectoryExperiment( angleR1_init, angleR2_init, angl
         
         % Calculate leg state and update plots
         zR = [posR1(end) posR2(end) velR1(end) velR2(end)]';
-        keypoints = keypoints_leg(z,p);
+        keypoints = keypoints_leg(zR,p);
         inertia_ellipse = inertia_ellipse_leg(zR,p);
         
         % TODO: could also plot Jacobian, control force vector here?
@@ -215,11 +216,11 @@ function output_data = RunTrajectoryExperiment( angleR1_init, angleR2_init, angl
     input = [input angleR1_init angleR2_init angleL1_init angleL2_init];
     input = [input K_xx K_yy K_xy D_xx D_yy D_xy];
     input = [input duty_max];
-    input = [input pts_footR(:)' pts_footL(:)]; % final size of input should be 28x1
+    input = [input pts_footR(:)' pts_footL(:)']; % final size of input should be 28x1
     
     params.timeout  = (start_period+traj_time+end_period);  
     
-    output_size = 19;    % number of outputs expected
+    output_size = 37;    % number of outputs expected
     output_data = RunExperiment(frdm_ip,frdm_port,input,output_size,params);
     linkaxes([a1 a2 a3 a4],'x')
     

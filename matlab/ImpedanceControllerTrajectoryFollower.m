@@ -13,8 +13,8 @@ pts_foot_R = [0.1624    0.1624    0.1624    0.0619   -0.1636    0.0035    0.0035
 
 pts_foot_L = repmat(const_point,1,8);
        
-pts_foot_L = [0.1624    0.1624    0.1624    0.0619   -0.1636    0.0035    0.0035    0.0035;
-               -0.1265   -0.1265   -0.1265   -0.2527   -0.2293   -0.1417   -0.1417   -0.1417]; % YOUR BEZIER PTS HERE
+pts_foot_L = [-0.0970   -0.0970   -0.0970    0.1671    0.1600    0.0748    0.0748    0.0748
+              -0.1335   -0.1335   -0.1335   -0.1230   -0.1289   -0.1943   -0.1943   -0.1943]; % YOUR BEZIER PTS HERE
 
 % Initial leg angles for encoder resets (negative of q1,q2 in lab handout due to direction motors are mounted)
 angleR1_init = 0;
@@ -26,8 +26,8 @@ angleL2_init = -pi/2;
 % Total experiment time is buffer,trajectory,buffer
 traj_time         = 0.5;
 pre_buffer_time   = 2; % this should be 0 for constant points, 2 for Bezier trajectories
-pre_buffer_timeR  = 2; 
-pre_buffer_timeL  = 3; 
+pre_buffer_timeR  = 2; %Don't change, this doesn't work yet 
+pre_buffer_timeL  = 2; %Don't change, this doesn't work yet 
 post_buffer_time  = 2;
 
 % Gains for impedance controller
@@ -52,22 +52,45 @@ duty_max   = 0.4;
 
 %% Extract data
 t = output_data(:,1);
-x = -output_data(:,12); % actual foot position in X (negative due to direction motors are mounted)
-y = output_data(:,13); % actual foot position in Y
+xR = -output_data(:,12); % actual foot position in X (negative due to direction motors are mounted)
+yR = output_data(:,13); % actual foot position in Y
    
-xdes = -output_data(:,16); % desired foot position in X (negative due to direction motors are mounted)
-ydes = output_data(:,17); % desired foot position in Y
+xdesR = -output_data(:,16); % desired foot position in X (negative due to direction motors are mounted)
+ydesR = output_data(:,17); % desired foot position in Y
+
+xL = -output_data(:,30); % actual foot position in X (negative due to direction motors are mounted)
+yL = output_data(:,31); % actual foot position in Y
+   
+xdesL = -output_data(:,34); % desired foot position in X (negative due to direction motors are mounted)
+ydesL = output_data(:,35); % desired foot position in Y
 
 %% Plot foot vs desired
+
+%% Right foot
 figure(3); clf;
 subplot(211); hold on
-plot(t,xdes,'r-'); plot(t,x);
-xlabel('Time (s)'); ylabel('X (m)'); legend({'Desired','Actual'});
+plot(t,xdesR,'r-'); plot(t,xR);
+xlabel('Time (s)'); ylabel('X (m)'); legend({'Desired Right Foot','Actual'});
 
 subplot(212); hold on
-plot(t,ydes,'r-'); plot(t,y);
-xlabel('Time (s)'); ylabel('Y (m)'); legend({'Desired','Actual'});
+plot(t,ydesR,'r-'); plot(t,yR);
+xlabel('Time (s)'); ylabel('Y (m)'); legend({'Desired Right Foot','Actual'});
 
 figure(4); clf; hold on
-plot(xdes,ydes,'r-'); plot(x,y,'k');
-xlabel('X (m)'); ylabel('Y (m)'); legend({'Desired','Actual'});
+plot(xdesR,ydesR,'r-'); plot(xR,yR,'k');
+xlabel('X (m)'); ylabel('Y (m)'); legend({'Desired Right Foot','Actual'});
+
+%% Left foot
+
+figure(5); clf;
+subplot(211); hold on
+plot(t,xdesL,'r-'); plot(t,xL);
+xlabel('Time (s)'); ylabel('X (m)'); legend({'Desired Left Foot','Actual'});
+
+subplot(212); hold on
+plot(t,ydesL,'r-'); plot(t,yL);
+xlabel('Time (s)'); ylabel('Y (m)'); legend({'Desired Left Foot','Actual'});
+
+figure(6); clf; hold on
+plot(xdesL,ydesL,'r-'); plot(xL,yL,'k');
+xlabel('X (m)'); ylabel('Y (m)'); legend({'Desired Left Foot','Actual'});
