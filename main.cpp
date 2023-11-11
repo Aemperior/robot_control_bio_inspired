@@ -44,9 +44,10 @@ float start_period, start_periodR, start_periodL, traj_period, end_period;
 
 struct leg_gain gains;
 
-struct leg_config leg_confR; 
-struct leg_config leg_confL;
-
+float angleR1_init;
+float angleR2_init; 
+float angleL1_init;
+float angleL2_init; 
 float duty_max; 
 
 int main (void)
@@ -80,11 +81,6 @@ int main (void)
         // If there are new inputs, this code will run
         if (server.getParams(input_params,NUM_INPUTS)) {
             
-            float angleR1_init;
-            float angleR2_init; 
-            float angleL1_init;
-            float angleL2_init; 
-
             struct from_matlab input_struct; 
             input_array2struct(input_params, &input_struct); 
 
@@ -110,31 +106,20 @@ int main (void)
             rDesFootL_bez.setPoints(input_struct.foot_pointsL);
             trajectory_mode = input_struct.traj_mode; 
             
-            leg_confR = {
-                .motor1 = MOTOR_D,
-                .motor2 = MOTOR_C,
-                .side = RIGHT,
-                .angle1_init = angleR1_init,
-                .angle2_init = angleR2_init,
-            };
             CurrentLoopController current_controllerR(
                 duty_max,
-                leg_confR,
+                {
+                    .motor1 = MOTOR_D,
+                    .motor2 = MOTOR_C,},
                 &encoderD,
                 &encoderC,
                 &motorShield);
 
-            leg_confL = {
-                .motor1 = MOTOR_A,
-                .motor2 = MOTOR_B,
-                .side = LEFT,
-                .angle1_init = angleL1_init,
-                .angle2_init = angleL2_init,
-            };
-
             CurrentLoopController current_controllerL(
                 duty_max,
-                leg_confL,
+                {
+                    .motor1 = MOTOR_A,
+                    .motor2 = MOTOR_B,},
                 &encoderA,
                 &encoderB,
                 &motorShield);
@@ -159,8 +144,19 @@ int main (void)
             while( t.read() < start_period + traj_period + end_period) { 
                  
                 // Read encoders to get motor states   
-                joint_state joints_R_state = get_joint_state(leg_confR, &encoderD, &encoderC);
-                joint_state joints_L_state = get_joint_state(leg_confL, &encoderA, &encoderB);
+                joint_state joints_R_state = {
+                    .th1 = encoderD.getPulses() *PULSE_TO_RAD + angleR1_init,
+                    .th2 = encoderC.getPulses() * PULSE_TO_RAD + angleR2_init,
+                    .dth1 = encoderD.getVelocity() * PULSE_TO_RAD,
+                    .dth2 = encoderC.getVelocity() * PULSE_TO_RAD,
+                };
+
+                joint_state joints_L_state = {
+                    .th1 = encoderA.getPulses() *PULSE_TO_RAD + angleL1_init,
+                    .th2 = encoderB.getPulses() * PULSE_TO_RAD + angleL2_init,
+                    .dth1 = encoderA.getVelocity() * PULSE_TO_RAD,
+                    .dth2 = encoderB.getVelocity() * PULSE_TO_RAD,
+                };
  
                 // Calculate the Jacobian  
                 foot_jacobian J_R = calc_foot_jacobi(joints_R_state.th1, joints_R_state.th2, params); 
@@ -212,7 +208,7 @@ int main (void)
                 default:
                     break;
                 }
-
+                
                 struct joint_state desired_joint_stateR = calc_desired_joints(desired_foot_stateR, J_R, params); 
                 struct joint_state desired_joint_stateL = calc_desired_joints(desired_foot_stateL, J_L, params); 
 

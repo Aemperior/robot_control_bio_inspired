@@ -2,58 +2,18 @@
 
 #define PULSE_TO_RAD (2.0f*3.14159f / 1200.0f)
 
-struct current_pair get_desired_current(struct joint_state state, struct leg_gain gains, 
-                                        struct joint_state desired_state, struct leg_config leg_conf, 
-                                        float k_t){
+struct current_pair get_desired_current(struct joint_state state, struct leg_gain gains, struct joint_state desired_state, float k_t){
     
     float current_des1 = (gains.K_xx*(desired_state.th1 - state.th1) + gains.D_xx*(desired_state.dth1 - state.dth1))/k_t; 
     float current_des2 = (gains.K_yy*(desired_state.th2 - state.th2) + gains.D_yy*(desired_state.dth2 - state.dth2))/k_t;  
 
-    int sign = 1; 
-    if leg_conf.side == LEFT{
-        sign = -1; 
-    }
-
     struct current_pair desired_current_pair = {
-        .current1 = sign*current_des1,
-        .current2 = sign*current_des2,
+        .current1 = current_des1,
+        .current2 = current_des2,
     };
 
     return desired_current_pair; 
 }
-
-struct joint_state get_joint_state(struct leg_config leg_conf, QEI *encoder1_ptr, QEI *encoder2_ptr){
-    
-
-    float th1 = encoder1_ptr->getPulses() *PULSE_TO_RAD + angleR1_init;
-    float th2 = encoder2_ptr->getPulses() * PULSE_TO_RAD + angleR2_init;
-    float dth1 = encoder1_ptr->getVelocity() * PULSE_TO_RAD;
-    float dth2 = encoder2_ptr->getVelocity() * PULSE_TO_RAD;
-
-    switch (leg_conf.side)
-    {
-    case RIGHT:
-        // Do nothing
-        break;
-    case LEFT:
-        // Flip direction because motor reference is opposite of generalized coordinate reference
-        th1 = -th1; 
-        th2 = -th2; 
-        dth1 = -dth1; 
-        dth2 = -dth2;
-        break;
-    default:
-        break;
-    }
-
-    return {
-        .th1 = th1,
-        .th2 = th2,
-        .dth1 = dth1,
-        .dth2 = dth2,
-    }; 
-}
-
 
 CurrentLoopController::CurrentLoopController(
                             float duty_max,

@@ -82,7 +82,7 @@ struct joint_state calc_desired_joints(struct foot_state foot_state_desired, str
     float vDesFoot_y = foot_state_desired.dyFoot; 
 
     // Don't know why minus is added, original code also did that
-    float xFoot_inv = rDesFoot_x;
+    float xFoot_inv = -rDesFoot_x;
     float yFoot_inv = rDesFoot_y;   
 
     struct angle_pair desired_angles = calc_inverse_kinematics(xFoot_inv,

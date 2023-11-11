@@ -17,6 +17,8 @@ struct leg_gain{
     float D_yy;
 };
 
+struct current_pair get_desired_current(struct joint_state state, struct leg_gain, struct joint_state desired_state, float k_t); 
+
 enum motor{
     MOTOR_A,
     MOTOR_B,
@@ -24,24 +26,10 @@ enum motor{
     MOTOR_D,    
 };
 
-enum side{
-    LEFT,
-    RIGHT,
-};
-
 struct leg_config{
     enum motor motor1;
     enum motor motor2;
-    enum side;
-    float angle1_init;
-    float angle2_init;
 };
-
-struct current_pair get_desired_current(struct joint_state state, struct leg_gain, 
-                                        struct joint_state desired_state, struct leg_config leg_conf, 
-                                        float k_t); 
-
-struct joint_state get_joint_state(struct leg_config leg_conf, QEI *encoder1_ptr, QEI *encoder2_ptr);
 
 class CurrentLoopController {
 public:
