@@ -44,7 +44,7 @@ angleL2_init = -pi/2;
 %% More stuff
 
 % Total experiment time is buffer,trajectory,buffer
-traj_time         = 0.5;
+traj_time         = 10;
 pre_buffer_time   = 2; % this should be 0 for constant points, 2 for Bezier trajectories
 pre_buffer_timeR  = 2; %Don't change, this doesn't work yet 
 pre_buffer_timeL  = 2; %Don't change, this doesn't work yet 
