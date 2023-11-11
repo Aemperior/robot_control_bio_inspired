@@ -15,27 +15,6 @@ struct current_pair get_desired_current(struct joint_state state, struct leg_gai
     return desired_current_pair; 
 }
 
-
-// CurrentLoopController::CurrentLoopController(
-//                           float duty_max,
-//                           MotorWriteFunction motorWrite_1_Func, 
-//                           MotorReadCurrentFunction motorReadCurrent_1_Func,
-//                           EncoderVelocityFunction motorReadVelocity_1_Func,
-//                           MotorWriteFunction motorWrite_2_Func,
-//                           MotorReadCurrentFunction motorReadCurrent_2_Func,
-//                           EncoderVelocityFunction motorReadVelocity_2_Func) :    
-//     motorWrite_1_Func(motorWrite_1_Func),
-//     motorReadCurrent_1_Func(motorReadCurrent_1_Func),
-//     motorReadVelocity_1_Func(motorReadVelocity_1_Func),
-//     motorWrite_2_Func(motorWrite_2_Func),
-//     motorReadCurrent_2_Func(motorReadCurrent_2_Func),
-//     motorReadVelocity_2_Func(motorReadVelocity_2_Func)
-// {
-
-//     // Your parameters here 
-//     this->duty_max = duty_max;
-// }
-
 CurrentLoopController::CurrentLoopController(
                             float duty_max,
                             struct leg_config leg_conf,

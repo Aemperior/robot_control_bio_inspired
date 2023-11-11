@@ -3,11 +3,6 @@
 #include "kinematics.h"
 #include "controller.h"
 
-#define BEZIER_ORDER_FOOT    7
-#define N_FOOT_POINTS_PER_FOOT 2*(BEZIER_ORDER_FOOT+1)
-#define NUM_INPUTS (16 + 2*N_FOOT_POINTS_PER_FOOT)
-#define NUM_OUTPUTS 37
-
 #define t_OUT_IDX 0
 
 #define angleR1_OUT_IDX 1
@@ -54,6 +49,12 @@
 #define vDesFootL_x_OUT_IDX 35
 #define vDesFootL_y_OUT_IDX 36
 
+// derived quantities
+#define NUM_OUTPUTS 37
+
+// needed for vars
+#define BEZIER_ORDER_FOOT    7
+#define N_FOOT_POINTS_PER_FOOT 2*(BEZIER_ORDER_FOOT+1)
 
 #define start_period_IN_IDX 0
 #define start_periodR_IN_IDX 1
@@ -93,6 +94,9 @@
 #define bezier_pointsR_begin_IN_IDX 29
 
 #define bezier_pointsL_begin_IN_IDX 29 + N_FOOT_POINTS_PER_FOOT
+
+// derived quantities
+#define NUM_INPUTS (29 + 2*N_FOOT_POINTS_PER_FOOT)
 
 struct to_matlab{
     float t; 

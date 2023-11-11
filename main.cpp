@@ -62,6 +62,11 @@ int main (void)
     // Object for 7th order Cartesian foot trajectory
     BezierCurve rDesFootR_bez(2,BEZIER_ORDER_FOOT);
     BezierCurve rDesFootL_bez(2,BEZIER_ORDER_FOOT);
+
+    struct p_traj ellipse_trajR; 
+    struct p_traj ellipse_trajL; 
+
+    enum traj_mode trajectory_mode; 
     
     // Link the terminal with our server and start it up
     server.attachTerminal(pc);
@@ -95,8 +100,11 @@ int main (void)
             
             duty_max        = input_struct.duty_max;   // Maximum duty factor
 
+            ellipse_trajR = input_struct.p_trajR;
+            ellipse_trajL = input_struct.p_trajL; 
             rDesFootR_bez.setPoints(input_struct.foot_pointsR);
             rDesFootL_bez.setPoints(input_struct.foot_pointsL);
+            trajectory_mode = input_struct.traj_mode; 
             
             CurrentLoopController current_controllerR(
                 duty_max,
@@ -178,37 +186,12 @@ int main (void)
                 }
                 
                 // Get desired foot positions and velocities
-                float rDesFootR[2] , vDesFootR[2];
-                rDesFootR_bez.evaluate(teff/traj_period,rDesFootR);
-                rDesFootR_bez.evaluateDerivative(teff/traj_period,vDesFootR);
-                vDesFootR[0]/=traj_period;
-                vDesFootR[1]/=traj_period;
-                vDesFootR[0]*=vMult;
-                vDesFootR[1]*=vMult;
-
-                float rDesFootL[2] , vDesFootL[2];
-                rDesFootL_bez.evaluate(teff/traj_period,rDesFootL);
-                rDesFootL_bez.evaluateDerivative(teff/traj_period,vDesFootL);
-                vDesFootL[0]/=traj_period;
-                vDesFootL[1]/=traj_period;
-                vDesFootL[0]*=vMult;
-                vDesFootL[1]*=vMult;
                 
                 // Calculate the inverse kinematics (joint positions and velocities) for desired joint angles 
-
-                struct foot_state desired_foot_stateR = {
-                    .xFoot = rDesFootR[0],
-                    .yFoot = rDesFootR[1],
-                    .dxFoot = vDesFootR[0],
-                    .dyFoot = vDesFootR[1],
-                };
+                
+                struct foot_state desired_foot_stateR = calc_desired_foot_single_bezier(&rDesFootR_bez, vMult, teff, traj_period);
+                struct foot_state desired_foot_stateL = calc_desired_foot_single_bezier(&rDesFootL_bez, vMult, teff, traj_period);
                 // struct foot_state desired_foot_stateR = foot_R_state; 
-                struct foot_state desired_foot_stateL = {
-                    .xFoot = rDesFootL[0],
-                    .yFoot = rDesFootL[1],
-                    .dxFoot = vDesFootL[0],
-                    .dyFoot = vDesFootL[1],
-                };
                 // struct foot_state desired_foot_stateL = foot_R_state; 
 
                 struct joint_state desired_joint_stateR = calc_desired_joints(desired_foot_stateR, J_R, params); 

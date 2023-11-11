@@ -107,3 +107,46 @@ struct joint_state calc_desired_joints(struct foot_state foot_state_desired, str
 
     return desired_angle_state;
 }
+
+struct foot_state calc_desired_foot_single_bezier(BezierCurve* desired_curve_ptr, float vMult, float t_eff, float traj_period){
+    
+    float rDesFoot[2] , vDesFoot[2];
+    desired_curve_ptr->evaluate(t_eff/traj_period,rDesFoot);
+    desired_curve_ptr->evaluateDerivative(t_eff/traj_period,vDesFoot);
+    vDesFoot[0]/=traj_period;
+    vDesFoot[1]/=traj_period;
+    vDesFoot[0]*=vMult;
+    vDesFoot[1]*=vMult;
+
+    return {
+        .xFoot = rDesFoot[0],
+        .yFoot = rDesFoot[1],
+        .dxFoot = vDesFoot[0],
+        .dyFoot = vDesFoot[1],
+    };
+}
+
+struct foot_state calc_desired_foot_ellipse(float teff, struct p_traj ellipse_traj){
+
+    // rEd_1 = [p_traj.x_0 p_traj.y_0 0]' + ...
+            // [p_traj.rx*cos(omega_swing*t+pi) p_traj.ry*sin(omega_swing*t+pi) 0]';
+
+    // vEd_1 = [-p_traj.rx*sin(omega_swing*t+pi)*omega_swing    ...
+            //   p_traj.ry*cos(omega_swing*t+pi)*omega_swing   0]';
+
+    float omega = ellipse_traj.omega; 
+    float phase_delay = ellipse_traj.phase_delay; 
+
+    float x0 = ellipse_traj.x0; 
+    float y0 = ellipse_traj.y0; 
+    float rx = ellipse_traj.rx; 
+    float ry = ellipse_traj.ry; 
+
+    return {
+        .xFoot = x0 + rx*cos(omega*teff + phase_delay),
+        .yFoot = y0 + ry*sin(omega*teff + phase_delay),
+        .dxFoot = -rx*sin(omega*teff + phase_delay)*omega,
+        .dyFoot = ry*cos(omega*teff + phase_delay)*omega,
+    };
+}
+

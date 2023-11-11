@@ -1,5 +1,7 @@
 #pragma once
 
+#include "BezierCurve.h"
+
 struct kinematic_params{
     // Fixed kinematic parameters
     float l_OA;  
@@ -63,4 +65,8 @@ struct foot_state calc_forward_kinematics(struct joint_state joints, struct kine
 
 struct angle_pair calc_inverse_kinematics(float xFoot, float yFoot, struct kinematic_params params); 
 
-struct joint_state calc_desired_joints(struct foot_state foot_state_desired, struct foot_jacobian J, struct kinematic_params params); 
+struct joint_state calc_desired_joints(struct foot_state foot_state_desired, struct foot_jacobian J, struct kinematic_params params);
+
+struct foot_state calc_desired_foot_single_bezier(BezierCurve* desired_curve_ptr, float vMult, float t_eff, float traj_period); 
+
+struct foot_state calc_desired_foot_ellipse(float teff, struct p_traj ellipse_traj); 

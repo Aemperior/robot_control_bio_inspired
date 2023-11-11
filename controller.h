@@ -33,23 +33,12 @@ struct leg_config{
 
 class CurrentLoopController {
 public:
-    // using MotorWriteFunction = std::function<void(float, int)>;
-    // using MotorReadCurrentFunction = std::function<uint32_t()>;
-    // using EncoderVelocityFunction = std::function<float()>;
 
     QEI *encoder1_ptr; 
     QEI *encoder2_ptr;
     MotorShield *motorshield_ptr; 
     struct leg_config leg_conf; 
 
-    // CurrentLoopController(
-    //                       float duty_max,
-    //                       MotorWriteFunction motorWrite_1_Func, 
-    //                       MotorReadCurrentFunction motorReadCurrent_1_Func,
-    //                       EncoderVelocityFunction motorReadVelocity_1_Func,
-    //                       MotorWriteFunction motorWrite_2_Func,
-    //                       MotorReadCurrentFunction motorReadCurrent_2_Func,
-    //                       EncoderVelocityFunction motorReadVelocity_2_Func);
     CurrentLoopController(
                             float duty_max,
                             struct leg_config leg_conf,
@@ -57,8 +46,6 @@ public:
                             QEI *encoder2_ptr,
                             MotorShield *motorshield_ptr
     );
-
-    //void setParameters(/* parameters */);
 
     void callback();
 
@@ -81,16 +68,6 @@ public:
 
 private:
 
-    // MotorWriteFunction motorWrite_1_Func;
-    // MotorReadCurrentFunction motorReadCurrent_1_Func;
-    // EncoderVelocityFunction motorReadVelocity_1_Func;
-    // MotorWriteFunction motorWrite_2_Func;
-    // MotorReadCurrentFunction motorReadCurrent_2_Func;
-    // EncoderVelocityFunction motorReadVelocity_2_Func;
-
-
-    // Your parameters here
-
     struct leg_gain gains; 
 
     struct joint_state joint_states; 
@@ -103,3 +80,5 @@ private:
     float current_int1 = 0.0f;
     float current_int2 = 0.0f;
 };
+
+
