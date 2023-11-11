@@ -6,8 +6,9 @@
 
 %% Foot trajectory
 % Choose mode
-traj_mode = 0; %bezier
-%traj_mode = 1; %ellipse
+%traj_mode = 0 %bezier
+traj_mode = 1 %ellipse
+%traj_mode = 2 %teleop
 %% Bezier
 const_point = [-0.1; -0.13]; %[x;y] or [q1,q2] constant coordinate (x,q1,q2 coordinates should be opposite sign due to direction motors are mounted)
 pts_foot_R = repmat(const_point,1,8);
@@ -43,7 +44,7 @@ angleL2_init = -pi/2;
 %% More stuff
 
 % Total experiment time is buffer,trajectory,buffer
-traj_time         = 0.5;
+traj_time         = 10;
 pre_buffer_time   = 2; % this should be 0 for constant points, 2 for Bezier trajectories
 pre_buffer_timeR  = 2; %Don't change, this doesn't work yet 
 pre_buffer_timeL  = 2; %Don't change, this doesn't work yet 
@@ -61,7 +62,7 @@ gains.D_yy = 0.05%5%1.5%0.5;%0.5;
 gains.D_xy = 0;
 
 % Maximum duty cycle commanded by controller (should always be <=1.0)
-duty_max   = 0.4;
+duty_max   = 0.9;
 
 %% Run Experiment
 [output_data] = RunTrajectoryExperiment(angleR1_init, angleR2_init, pts_foot_R, ...
