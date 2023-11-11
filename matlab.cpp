@@ -90,7 +90,11 @@ void input_array2struct(float input_params[NUM_INPUTS], struct from_matlab *inpu
         .phase_delay = input_params[p_trajL_phase_delay_IN_IDX],
     };
 
-    input_struct_ptr->traj_mode = input_params[traj_mode_IN_IDX];
+    if(input_params[traj_mode_IN_IDX] == 0.0f) {
+        input_struct_ptr->traj_mode = TRAJ_MODE_BEZIER;
+    } else if(input_params[traj_mode_IN_IDX] == 1.0f) {
+        input_struct_ptr->traj_mode = TRAJ_MODE_ELLIPSE;
+    }
 
     for(int i = 0; i<N_FOOT_POINTS_PER_FOOT;i++) {
       input_struct_ptr->foot_pointsR[i] = input_params[bezier_pointsR_begin_IN_IDX+i];    
