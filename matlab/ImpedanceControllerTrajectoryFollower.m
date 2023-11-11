@@ -20,18 +20,18 @@ pts_foot_L = [-0.0970   -0.0970   -0.0970    0.1671    0.1600    0.0748    0.074
 
 %% Ellipse
 p_trajR.omega = 5;
-p_trajR.x_0   = 0.05;
-p_trajR.y_0   = -.15;
+p_trajR.x0   = 0.05;
+p_trajR.y0   = -.15;
 p_trajR.ry     = 0.035; % height of ellipse
 p_trajR.rx    = 0.035;  % width of ellipse
 p_trajR.phase_delay = pi; 
 
-p_trajR.omega = 5;
-p_trajR.x_0   = 0.05;
-p_trajR.y_0   = -.15;
-p_trajR.ry     = 0.035; % height of ellipse
-p_trajR.rx    = 0.035;  % width of ellipse
-p_trajR.phase_delay = 0;
+p_trajL.omega = 5;
+p_trajL.x0   = 0.05;
+p_trajL.y0   = -.15;
+p_trajL.ry     = 0.035; % height of ellipse
+p_trajL.rx    = 0.035;  % width of ellipse
+p_trajL.phase_delay = 0;
 
 % Initial leg angles for encoder resets (negative of q1,q2 in lab handout due to direction motors are mounted)
 angleR1_init = 0;
