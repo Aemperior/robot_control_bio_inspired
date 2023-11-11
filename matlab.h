@@ -99,8 +99,8 @@ struct to_matlab{
 
     float dutycycleR1; 
     float dutycycleR2; 
-    float dutyCycleL1; 
-    float dutyCycleL2; 
+    float dutycycleL1; 
+    float dutycycleL2; 
 };
 
 struct from_matlab{

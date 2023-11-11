@@ -179,22 +179,23 @@ int main (void)
                 
                 // Get desired foot positions and velocities
                 float rDesFootR[2] , vDesFootR[2];
-                rDesFoot_bezR.evaluate(teff/traj_period,rDesFootR);
-                rDesFoot_bezR.evaluateDerivative(teff/traj_period,vDesFootR);
+                rDesFootR_bez.evaluate(teff/traj_period,rDesFootR);
+                rDesFootR_bez.evaluateDerivative(teff/traj_period,vDesFootR);
                 vDesFootR[0]/=traj_period;
                 vDesFootR[1]/=traj_period;
                 vDesFootR[0]*=vMult;
                 vDesFootR[1]*=vMult;
 
                 float rDesFootL[2] , vDesFootL[2];
-                rDesFoot_bezL.evaluate(teff/traj_period,rDesFootL);
-                rDesFoot_bezL.evaluateDerivative(teff/traj_period,vDesFootL);
+                rDesFootL_bez.evaluate(teff/traj_period,rDesFootL);
+                rDesFootL_bez.evaluateDerivative(teff/traj_period,vDesFootL);
                 vDesFootL[0]/=traj_period;
                 vDesFootL[1]/=traj_period;
                 vDesFootL[0]*=vMult;
                 vDesFootL[1]*=vMult;
                 
                 // Calculate the inverse kinematics (joint positions and velocities) for desired joint angles 
+
                 struct foot_state desired_foot_stateR = {
                     .xFoot = rDesFootR[0],
                     .yFoot = rDesFootR[1],

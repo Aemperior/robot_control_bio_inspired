@@ -73,11 +73,11 @@ void input_array2struct(float input_params[NUM_INPUTS], struct from_matlab *inpu
     input_struct_ptr-> duty_max = input_params[duty_max_IN_IDX]; 
     
     for(int i = 0; i<N_FOOT_POINTS_PER_FOOT;i++) {
-      input_struct_ptr->foot_points[i] = input_params[bezier_points_beginR_IN_IDX+i];    
+      input_struct_ptr->foot_pointsR[i] = input_params[bezier_pointsR_begin_IN_IDX+i];    
     }
 
     for(int i = 0; i<N_FOOT_POINTS_PER_FOOT;i++) {
-      input_struct_ptr->foot_points[i] = input_params[bezier_points_beginL_IN_IDX+i];    
+      input_struct_ptr->foot_pointsL[i] = input_params[bezier_pointsL_begin_IN_IDX+i];    
     }
 
 }
