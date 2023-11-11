@@ -7,8 +7,8 @@
 %% Foot trajectory
 % Choose mode
 %traj_mode = 0 %bezier
-traj_mode = 1 %ellipse
-%traj_mode = 2 %teleop
+%traj_mode = 1 %ellipse
+traj_mode = 2 %teleop
 %% Bezier
 const_point = [-0.1; -0.13]; %[x;y] or [q1,q2] constant coordinate (x,q1,q2 coordinates should be opposite sign due to direction motors are mounted)
 pts_foot_R = repmat(const_point,1,8);
@@ -36,9 +36,9 @@ p_trajL.phase_delay = 0;
 
 % Initial leg angles for encoder resets (negative of q1,q2 in lab handout due to direction motors are mounted)
 angleR1_init = 0;
-angleR2_init = -pi/2; 
+angleR2_init = pi/2; 
 angleL1_init = 0;
-angleL2_init = -pi/2;
+angleL2_init = pi/2;
 
 
 %% More stuff
@@ -62,7 +62,7 @@ gains.D_yy = 0.05%5%1.5%0.5;%0.5;
 gains.D_xy = 0;
 
 % Maximum duty cycle commanded by controller (should always be <=1.0)
-duty_max   = 0.9;
+duty_max   = 0.4;
 
 %% Run Experiment
 [output_data] = RunTrajectoryExperiment(angleR1_init, angleR2_init, pts_foot_R, ...
