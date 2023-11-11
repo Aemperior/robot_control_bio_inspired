@@ -94,6 +94,8 @@ void input_array2struct(float input_params[NUM_INPUTS], struct from_matlab *inpu
         input_struct_ptr->traj_mode = TRAJ_MODE_BEZIER;
     } else if(input_params[traj_mode_IN_IDX] == 1.0f) {
         input_struct_ptr->traj_mode = TRAJ_MODE_ELLIPSE;
+    } else if(input_params[traj_mode_IN_IDX] == 2.0f) {
+        input_struct_ptr->traj_mode = TRAJ_TELEOP;
     }
 
     for(int i = 0; i<N_FOOT_POINTS_PER_FOOT;i++) {

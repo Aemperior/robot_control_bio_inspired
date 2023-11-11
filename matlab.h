@@ -126,6 +126,7 @@ struct to_matlab{
 enum traj_mode{
     TRAJ_MODE_BEZIER = 0,
     TRAJ_MODE_ELLIPSE = 1,
+    TRAJ_TELEOP = 2,
 };
 
 struct from_matlab{

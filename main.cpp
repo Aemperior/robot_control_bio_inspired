@@ -188,12 +188,27 @@ int main (void)
                 // Get desired foot positions and velocities
                 
                 // Calculate the inverse kinematics (joint positions and velocities) for desired joint angles 
-                
-                struct foot_state desired_foot_stateR = calc_desired_foot_single_bezier(&rDesFootR_bez, vMult, teff, traj_period);
-                struct foot_state desired_foot_stateL = calc_desired_foot_single_bezier(&rDesFootL_bez, vMult, teff, traj_period);
-                // struct foot_state desired_foot_stateR = foot_R_state; 
-                // struct foot_state desired_foot_stateL = foot_R_state; 
+                struct foot_state desired_foot_stateR;
+                struct foot_state desired_foot_stateL;
 
+                switch (trajectory_mode)
+                {
+                case TRAJ_MODE_ELLIPSE:
+                    desired_foot_stateR = calc_desired_foot_ellipse(teff, ellipse_trajR);
+                    desired_foot_stateL = calc_desired_foot_ellipse(teff, ellipse_trajL);
+                    break;
+                case TRAJ_MODE_BEZIER:
+                    desired_foot_stateR = calc_desired_foot_single_bezier(&rDesFootR_bez, vMult, teff, traj_period);
+                    desired_foot_stateL = calc_desired_foot_single_bezier(&rDesFootL_bez, vMult, teff, traj_period);
+                    break;
+                case TRAJ_TELEOP:
+                    desired_foot_stateR = foot_R_state; 
+                    desired_foot_stateL = foot_R_state; 
+                    break;
+                default:
+                    break;
+                }
+                
                 struct joint_state desired_joint_stateR = calc_desired_joints(desired_foot_stateR, J_R, params); 
                 struct joint_state desired_joint_stateL = calc_desired_joints(desired_foot_stateL, J_L, params); 
 
