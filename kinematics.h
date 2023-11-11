@@ -48,6 +48,15 @@ struct angle_pair{
     float th2;
 }; 
 
+struct p_traj{
+    float x0; 
+    float y0; 
+    float rx; 
+    float ry; 
+    float omega; 
+    float phase_delay; 
+};
+
 struct foot_jacobian calc_foot_jacobi(float th1, float th2, struct kinematic_params params); 
 
 struct foot_state calc_forward_kinematics(struct joint_state joints, struct kinematic_params params); 

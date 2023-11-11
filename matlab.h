@@ -74,9 +74,25 @@
 #define D_xy_IN_IDX 14
 #define duty_max_IN_IDX 15
 
-#define bezier_pointsR_begin_IN_IDX 16
+#define p_trajR_x0_IN_IDX 16
+#define p_trajR_y0_IN_IDX 17
+#define p_trajR_rx_IN_IDX 18
+#define p_trajR_ry_IN_IDX 19
+#define p_trajR_omega_IN_IDX 20
+#define p_trajR_phase_delay_IN_IDX 21
 
-#define bezier_pointsL_begin_IN_IDX 16 + N_FOOT_POINTS_PER_FOOT
+#define p_trajL_x0_IN_IDX 22
+#define p_trajL_y0_IN_IDX 23
+#define p_trajL_rx_IN_IDX 24
+#define p_trajL_ry_IN_IDX 25
+#define p_trajL_omega_IN_IDX 26
+#define p_trajL_phase_delay_IN_IDX 27
+
+#define traj_mode_IN_IDX 28
+
+#define bezier_pointsR_begin_IN_IDX 29
+
+#define bezier_pointsL_begin_IN_IDX 29 + N_FOOT_POINTS_PER_FOOT
 
 struct to_matlab{
     float t; 
@@ -103,6 +119,11 @@ struct to_matlab{
     float dutycycleL2; 
 };
 
+enum traj_mode{
+    TRAJ_MODE_BEZIER = 0,
+    TRAJ_MODE_ELLIPSE = 1,
+};
+
 struct from_matlab{
     float start_period;
     float start_periodR; 
@@ -119,6 +140,11 @@ struct from_matlab{
     struct leg_gain gains; 
 
     float duty_max; 
+
+    struct p_traj p_trajR;
+    struct p_traj p_trajL;
+
+    enum traj_mode traj_mode;
 
     float foot_pointsR[N_FOOT_POINTS_PER_FOOT]; 
     float foot_pointsL[N_FOOT_POINTS_PER_FOOT];

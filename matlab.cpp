@@ -72,6 +72,26 @@ void input_array2struct(float input_params[NUM_INPUTS], struct from_matlab *inpu
     };
     input_struct_ptr-> duty_max = input_params[duty_max_IN_IDX]; 
     
+    input_struct_ptr->p_trajR = {
+        .x0 = input_params[p_trajR_x0_IN_IDX],
+        .y0 = input_params[p_trajR_y0_IN_IDX],
+        .rx = input_params[p_trajR_rx_IN_IDX],
+        .ry = input_params[p_trajR_ry_IN_IDX],
+        .omega = input_params[p_trajR_omega_IN_IDX],
+        .phase_delay = input_params[p_trajR_phase_delay_IN_IDX],
+    };
+
+    input_struct_ptr->p_trajL = {
+        .x0 = input_params[p_trajL_x0_IN_IDX],
+        .y0 = input_params[p_trajL_y0_IN_IDX],
+        .rx = input_params[p_trajL_rx_IN_IDX],
+        .ry = input_params[p_trajL_ry_IN_IDX],
+        .omega = input_params[p_trajL_omega_IN_IDX],
+        .phase_delay = input_params[p_trajL_phase_delay_IN_IDX],
+    };
+
+    input_struct_ptr->traj_mode = input_params[traj_mode_IN_IDX];
+
     for(int i = 0; i<N_FOOT_POINTS_PER_FOOT;i++) {
       input_struct_ptr->foot_pointsR[i] = input_params[bezier_pointsR_begin_IN_IDX+i];    
     }

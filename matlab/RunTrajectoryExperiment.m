@@ -1,5 +1,6 @@
 function output_data = RunTrajectoryExperiment( angleR1_init, angleR2_init, pts_footR, ...
     angleL1_init, angleL2_init, pts_footL, ...
+    p_trajR, p_trajL, traj_mode, ...
     traj_time, pre_buffer_time, pre_buffer_timeR, pre_buffer_timeL, post_buffer_time, gains, duty_max)
     
     % Figure for plotting motor data
@@ -216,6 +217,9 @@ function output_data = RunTrajectoryExperiment( angleR1_init, angleR2_init, pts_
     input = [input angleR1_init angleR2_init angleL1_init angleL2_init];
     input = [input K_xx K_yy K_xy D_xx D_yy D_xy];
     input = [input duty_max];
+    input = [input p_trajR.x0 p_trajR.y0 p_trajR.rx p_trajR.ry p_trajR.omega p_trajR.phase_delay];
+    input = [input p_trajL.x0 p_trajL.y0 p_trajL.rx p_trajL.ry p_trajL.omega p_trajL.phase_delay];
+    input = [input traj_mode]; 
     input = [input pts_footR(:)' pts_footL(:)']; % final size of input should be 28x1
     
     params.timeout  = (start_period+traj_time+end_period);  
