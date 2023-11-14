@@ -152,10 +152,10 @@ int main (void)
                 };
 
                 joint_state joints_L_state = {
-                    .th1 = encoderA.getPulses() *PULSE_TO_RAD + angleL1_init,
-                    .th2 = encoderB.getPulses() * PULSE_TO_RAD + angleL2_init,
-                    .dth1 = encoderA.getVelocity() * PULSE_TO_RAD,
-                    .dth2 = encoderB.getVelocity() * PULSE_TO_RAD,
+                    .th1 = -encoderA.getPulses() *PULSE_TO_RAD + angleL1_init, //NOTE: SIGN
+                    .th2 = -encoderB.getPulses() * PULSE_TO_RAD + angleL2_init, //NOTE: SIGN
+                    .dth1 =- encoderA.getVelocity() * PULSE_TO_RAD, //NOTE: SIGN
+                    .dth2 =- encoderB.getVelocity() * PULSE_TO_RAD, //NOTE: SIGN
                 };
  
                 // Calculate the Jacobian  
@@ -216,7 +216,11 @@ int main (void)
                 current_controllerR.desired_currents = desired_currentR;
 
                 struct current_pair desired_currentL = get_desired_current(joints_L_state, gains, desired_joint_stateL, current_controllerL.k_t);
-                current_controllerL.desired_currents = desired_currentL;
+                //current_controllerL.desired_currents = desired_currentL;
+                current_controllerL.desired_currents = {
+                    .current1 = -desired_currentL.current1,
+                    .current2 = -desired_currentL.current2,
+                };
 
                 // Form output to send to MATLAB     
                 float output_data[NUM_OUTPUTS];
