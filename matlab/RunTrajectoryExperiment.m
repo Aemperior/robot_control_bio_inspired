@@ -23,6 +23,7 @@ function output_data = RunTrajectoryExperiment( angleR1_init, angleR2_init, pts_
     subplot(425);
     h4 = plot([0],[0],'r');
     h4.XData = []; h4.YData = [];
+    legend("Current1", "Desired current1");
     hold off;
     
     a4 = subplot(427);
@@ -49,6 +50,7 @@ function output_data = RunTrajectoryExperiment( angleR1_init, angleR2_init, pts_
     subplot(426);
     h24 = plot([0],[0],'r');
     h24.XData = []; h24.YData = [];
+    legend("Current2", "Desired current2");
     hold off;
     
     a8 = subplot(428);
